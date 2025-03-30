@@ -35,7 +35,8 @@ class MainViewController: UIViewController {
         navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.accent]
         
         let favButton = UIBarButtonItem(image: UIImage(systemName: "heart"), style: .plain, target: self, action: #selector(favButtonTapped))
-        navigationItem.rightBarButtonItems = [favButton]
+        let closeButton = UIBarButtonItem(image: UIImage(systemName: "xmark.circle"), style: .plain, target: self, action: #selector(closeButtonTapped))
+        navigationItem.rightBarButtonItems = [favButton, closeButton]
     }
     
     func configureTableView() {
@@ -108,6 +109,21 @@ extension MainViewController {
     func favButtonTapped() {
         if let coordinator = coordinator {
             coordinator.navigateToFavouritesScreen(animated: true)
+        }
+    }
+    
+    @objc
+    func closeButtonTapped() {
+        guard let cities = cities else { return }
+        
+        for index in cities.indices {
+            self.cities?[index].isExpanded = false
+        }
+
+        let sections = IndexSet(integersIn: 0..<(self.cities?.count ?? 0))
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.tableView.reloadSections(sections, with: .fade)
         }
     }
 }
