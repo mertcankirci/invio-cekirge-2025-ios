@@ -14,7 +14,7 @@ class MapViewController: UIViewController {
 
     weak var coordinator: MapCoordinator?
     let mapView = MKMapView()
-    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewLayout.init())
+    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: AppLayouts.shared.snapToCenterLocationListLayout())
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -47,8 +47,6 @@ class MapViewController: UIViewController {
             collectionView.trailingAnchor.constraint(equalTo: mapView.trailingAnchor),
             collectionView.heightAnchor.constraint(equalToConstant: 120)
         ])
-        
-        view.bringSubviewToFront(collectionView)
     }
     
     func configureVC() {
@@ -59,31 +57,15 @@ class MapViewController: UIViewController {
     func configureMapView() {
         mapView.delegate = self
         mapView.translatesAutoresizingMaskIntoConstraints = false
-        
-        if let firstLocation = locations?.first {
-            let lat = firstLocation.coordinates.lat
-            let lon = firstLocation.coordinates.lng
-            
-            let center = CLLocationCoordinate2D(latitude: CLLocationDegrees(lat), longitude: CLLocationDegrees(lon))
-            let span = MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-            let region = MKCoordinateRegion(center: center, span: span)
-
-            mapView.setRegion(region, animated: false)
-        }
     }
     
     func configureCollectionView() {
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.showsHorizontalScrollIndicator = false
-        collectionView.alwaysBounceVertical = false
-        collectionView.alwaysBounceHorizontal = true
         collectionView.bounces = false
-        collectionView.isScrollEnabled = true
-        collectionView.setCollectionViewLayout(AppLayouts.shared.snapToCenterLocationListLayout(), animated: false)
         collectionView.backgroundColor = .clear
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
 
-        collectionView.dataSource = self
-        collectionView.delegate = self
+        self.collectionView.delegate = self
+        self.collectionView.dataSource = self
         
         collectionView.register(LocationListCollectionViewCell.self, forCellWithReuseIdentifier: LocationListCollectionViewCell.reuseId)
         
@@ -111,6 +93,7 @@ extension MapViewController: MKMapViewDelegate {
             let indexPath = IndexPath(row: index, section: 0)
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
+                
                 selectedView.markerTintColor = .accent
                 selectedView.glyphText = "★"
                 
@@ -120,10 +103,14 @@ extension MapViewController: MKMapViewDelegate {
     }
     
     func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {
-        guard let annotation = mapView.annotations.first else { return }
-        mapView.selectAnnotation(annotation, animated: true)
-    }
+        guard let annotation = mapView.annotations.first(where: { $0.title == locations?.first?.name }), mapView.selectedAnnotations.isEmpty else { return }
 
+        mapView.selectAnnotation(annotation, animated: true)
+        
+        if let annotationView = mapView.view(for: annotation) {
+            self.mapView(mapView, didSelect: annotationView)
+        }
+    }
 }
 
 ///CollectionView Delegate extension
@@ -139,28 +126,65 @@ extension MapViewController: UICollectionViewDelegate, UICollectionViewDataSourc
         cell.set(for: location)
         return cell
     }
-}
-
-///For controling scroll behaviour
-extension MapViewController: UIScrollViewDelegate {
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        print("📦 Kullanıcı kaydırıyor... offset: \(scrollView.contentOffset.x)")
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard let location = locations?[indexPath.item],
+              let annotation = mapView.annotations.first(where: { $0.title == location.name }) else {
+            Log.warning("Couldn't find location on select")
+            return
+        }
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.mapView.selectAnnotation(annotation, animated: true)
+            self.setRegionForAnnotation(for: annotation)
+        }
+        
     }
 }
 
-
 ///Custom functions extension
 extension MapViewController {
-    func addPin() {
+    private func addPin() {
         guard let locations = locations, locations.count > 0 else { Log.warning("No locations found on Map VC"); return }
         
+        var annotations: [MKPointAnnotation] = []
+
         for location in locations {
-            let annotation = MKPointAnnotation()
-            annotation.title = location.name
-            annotation.coordinate = CLLocationCoordinate2D(latitude: CLLocationDegrees(location.coordinates.lat), longitude: CLLocationDegrees(location.coordinates.lng))
-            
-            mapView.addAnnotation(annotation)
+            let annotation = createAnnotation(with: location)
+            annotations.append(annotation)
         }
+
+        mapView.addAnnotations(annotations)
+        mapView.showAnnotations(annotations, animated: false)
+    }
+    
+    func createAnnotation(with location: LocationModel) -> MKPointAnnotation {
+        let annotation = MKPointAnnotation()
+        annotation.title = location.name
+        annotation.coordinate = CLLocationCoordinate2D(
+            latitude: CLLocationDegrees(location.coordinates.lat),
+            longitude: CLLocationDegrees(location.coordinates.lng)
+        )
+        
+        return annotation
+    }
+    
+    func setRegionForAnnotation(for annotation: MKAnnotation) {
+        let lat = annotation.coordinate.latitude
+        let lon = annotation.coordinate.longitude
+        let center = CLLocationCoordinate2D(
+            latitude: lat,
+            longitude: lon
+        )
+        
+        let span = MKCoordinateSpan(
+               latitudeDelta: 0.01,
+               longitudeDelta: 0.01
+           )
+        
+        let region = MKCoordinateRegion(center: center, span: span)
+        mapView.setRegion(region, animated: true)
     }
 }
 

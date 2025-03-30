@@ -15,8 +15,12 @@ class CityTableViewCell: UITableViewCell {
     
     static let reuseId = "CityTableViewCell"
     let cityLabel = UILabel()
+    let locationLabel = UILabel()
     let navigationButton = UIButton()
-    let container = UIView()
+    let includesLocationImage = UIImageView()
+    let includesLocationContainer = UIView()
+    let cityImageView = CekirgeGradientImageView(frame: .zero)
+    private let locationImageConfiguration = UIImage.SymbolConfiguration(pointSize: 12, weight: .bold)
     weak var delegate: CityTableViewCellDelegate?
     private var city: CityModel?
 
@@ -24,7 +28,7 @@ class CityTableViewCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         configureLabels()
         configureButton()
-        configureContainer()
+        configureImageViews()
         
         configureCell()
     }
@@ -36,55 +40,105 @@ class CityTableViewCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         cityLabel.text = nil
+        cityImageView.resetImage()
     }
     
     func configureLabels() {
         cityLabel.translatesAutoresizingMaskIntoConstraints = false
         cityLabel.font = .systemFont(ofSize: 18, weight: .bold)
+        cityLabel.textColor = .white
+        
+        locationLabel.translatesAutoresizingMaskIntoConstraints = false
+        locationLabel.font = .systemFont(ofSize: 12, weight: .light)
+        locationLabel.textColor = .systemGray3
     }
     
     func configureButton() {
         navigationButton.translatesAutoresizingMaskIntoConstraints = false
-        navigationButton.setImage(UIImage(systemName: "chevron.right"), for: .normal)
+        navigationButton.setImage(UIImage(systemName: "mappin"), for: .normal)
+        navigationButton.imageView?.contentMode = .scaleAspectFit
+        
+        navigationButton.layer.cornerRadius = 16
+        navigationButton.layer.masksToBounds = true
+        navigationButton.backgroundColor = .gray.withAlphaComponent(0.5)
+        
         navigationButton.addTarget(self, action: #selector(didTapNavigationButton), for: .touchUpInside)
     }
     
-    func configureContainer() {
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.backgroundColor = .secondarySystemBackground
-        container.layer.cornerRadius = 8
-        container.layer.masksToBounds = true 
+    func configureImageViews() {
+        cityImageView.translatesAutoresizingMaskIntoConstraints = false
+        cityImageView.layer.cornerRadius = 8
+        cityImageView.layer.masksToBounds = true
         
-        container.addSubview(cityLabel)
-        container.addSubview(navigationButton)
+        includesLocationContainer.translatesAutoresizingMaskIntoConstraints = false
+        includesLocationContainer.layer.cornerRadius = 16
+        includesLocationContainer.layer.masksToBounds = true
+        includesLocationContainer.backgroundColor = .gray.withAlphaComponent(0.5)
+
+        includesLocationImage.translatesAutoresizingMaskIntoConstraints = false
+        includesLocationImage.contentMode = .scaleAspectFit
+        includesLocationImage.isUserInteractionEnabled = false
+        includesLocationImage.tintColor = .accent
     }
     
     func configureCell() {
+        backgroundColor = .clear
         selectionStyle = .none
-        contentView.addSubview(container)
+        [cityImageView, cityLabel, locationLabel, navigationButton, includesLocationImage, includesLocationContainer, includesLocationImage].forEach { view in
+            contentView.addSubview(view)
+        }
         
         NSLayoutConstraint.activate([
-            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            container.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
-            container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6),
+            cityImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            cityImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            cityImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
+            cityImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6),
+            cityImageView.heightAnchor.constraint(equalToConstant: 80),
             
-            cityLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            cityLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
-            cityLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -12),
+            includesLocationContainer.leadingAnchor.constraint(equalTo: cityImageView.leadingAnchor, constant: 16),
+            includesLocationContainer.centerYAnchor.constraint(equalTo: cityImageView.centerYAnchor),
+            includesLocationContainer.widthAnchor.constraint(equalToConstant: 32),
+            includesLocationContainer.heightAnchor.constraint(equalToConstant: 32),
             
-            navigationButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-            navigationButton.centerYAnchor.constraint(equalTo: cityLabel.centerYAnchor),
-            navigationButton.widthAnchor.constraint(equalToConstant: 16),
-            navigationButton.heightAnchor.constraint(equalToConstant: 16)
+            includesLocationImage.centerXAnchor.constraint(equalTo: includesLocationContainer.centerXAnchor),
+            includesLocationImage.centerYAnchor.constraint(equalTo: includesLocationContainer.centerYAnchor),
+            includesLocationImage.widthAnchor.constraint(equalToConstant: 16),
+            includesLocationImage.heightAnchor.constraint(equalToConstant: 16),
+            
+            cityLabel.leadingAnchor.constraint(equalTo: includesLocationContainer.trailingAnchor, constant: 12),
+            cityLabel.bottomAnchor.constraint(equalTo: cityImageView.bottomAnchor, constant: -8),
+            
+            locationLabel.leadingAnchor.constraint(equalTo: cityLabel.leadingAnchor),
+            locationLabel.bottomAnchor.constraint(equalTo: cityLabel.topAnchor, constant: -2),
+            
+            navigationButton.trailingAnchor.constraint(equalTo: cityImageView.trailingAnchor, constant: -16),
+            navigationButton.centerYAnchor.constraint(equalTo: cityImageView.centerYAnchor),
+            navigationButton.widthAnchor.constraint(equalToConstant: 32),
+            navigationButton.heightAnchor.constraint(equalToConstant: 32)
         ])
     }
     
     func set(city: CityModel) {
         cityLabel.text = city.city
+        locationLabel.text = "\(city.locations.count) places"
         self.city = city
+        cityImageView.downloadImage(from: city.cellImage)
+        includesLocationImage.image = UIImage(systemName: city.locations.count > 0 ? "plus" : "minus", withConfiguration: locationImageConfiguration)
     }
     
+    func onSelectPerform(isExpanded: Bool) {
+        let symbolName = isExpanded ? "minus" : "plus"
+        let newImage = UIImage(systemName: symbolName, withConfiguration: locationImageConfiguration)
+        
+        UIView.transition(with: includesLocationImage,
+                          duration: 0.4,
+                          options: .transitionCrossDissolve,
+                          animations: {
+                              self.includesLocationImage.image = newImage
+                          },
+                          completion: nil)
+    }
+
 }
 
 extension CityTableViewCell {

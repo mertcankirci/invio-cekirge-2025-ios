@@ -42,10 +42,14 @@ class MainViewController: UIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.separatorStyle = .none
-        tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 60
+        tableView.backgroundColor = .systemGroupedBackground
 
+        tableView.backgroundView?.backgroundColor = .systemGroupedBackground
+        
+        tableView.estimatedRowHeight = 120
+        tableView.rowHeight = UITableView.automaticDimension
+        
+        tableView.separatorStyle = .none
         
         tableView.register(CityTableViewCell.self, forCellReuseIdentifier: CityTableViewCell.reuseId)
         tableView.register(LocationTableViewCell.self, forCellReuseIdentifier: LocationTableViewCell.reuseId)
@@ -71,21 +75,27 @@ extension MainViewController {
         
         Task { [weak self] in
             guard let self = self else { return }
+            
             do {
                 let result = try await self.service.fetchData(for: page)
-                DispatchQueue.main.async {
+                await MainActor.run {
+                    
                     if self.cities == nil {
                         self.cities = []
                     }
-                    let startIndex = self.cities?.count ?? 0
-                    self.cities?.append(contentsOf: result.data)
-                    let endIndex = startIndex + result.data.count
-                    let indexSet = IndexSet(integersIn: startIndex..<endIndex)
-                    self.tableView.insertSections(indexSet, with: .automatic)
-                    self.fetching = false
+                    
+                    self.tableView.performBatchUpdates {
+                        let startIndex = self.cities?.count ?? 0
+                        self.cities?.append(contentsOf: result.data)
+                        let endIndex = startIndex + result.data.count
+                        let indexSet = IndexSet(integersIn: startIndex..<endIndex)
+                        self.tableView.insertSections(indexSet, with: .none)
+                    } completion: { _ in
+                        self.fetching = false
+                    }
                 }
             } catch {
-                fetching = false
+                self.fetching = false
                 presentAlert(errorMessage: error.localizedDescription)
             }
         }
@@ -98,8 +108,6 @@ extension MainViewController {
     func favButtonTapped() {
         if let coordinator = coordinator {
             coordinator.navigateToFavouritesScreen(animated: true)
-        } else {
-            print("coordinator yok aq")
         }
     }
 }
@@ -109,7 +117,7 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         guard let cities = cities else { return 0 }
         let city = cities[section]
-        return city.isExpanded ? max(city.locations.count, 1) : 1 //Konumsuz sehir icin.
+        return city.isExpanded ? city.locations.count + 1 : 1 //Konumsuz sehir icin.
     }
     
     func numberOfSections(in tableView: UITableView) -> Int {
@@ -132,9 +140,39 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
             return cell
         } else {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: LocationTableViewCell.reuseId) as? LocationTableViewCell else { return UITableViewCell() }
-            let location = city.locations[indexPath.row]
+            let locationIndex = indexPath.row - 1
+            let location = city.locations[locationIndex]
             cell.set(location: location)
             return cell
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        guard let cell = tableView.cellForRow(at: indexPath) as? CityTableViewCell else { return }
+
+        guard indexPath.row == 0 else { return }
+        guard let cityCount = cities?[indexPath.section].locations.count, cityCount > 0 else { return }
+        
+        cities?[indexPath.section].isExpanded.toggle()
+        
+        if let city = cities?[indexPath.section] {
+            if city.isExpanded {
+                let indexPaths = (1...city.locations.count).map { 
+                    IndexPath(row: $0, section: indexPath.section)
+                }
+                DispatchQueue.main.async {
+                    tableView.insertRows(at: indexPaths, with: .fade)
+                    cell.onSelectPerform(isExpanded: true)
+                }
+            } else {
+                let indexPaths = (1...city.locations.count).map { 
+                    IndexPath(row: $0, section: indexPath.section)
+                }
+                DispatchQueue.main.async {
+                    tableView.deleteRows(at: indexPaths, with: .fade)
+                    cell.onSelectPerform(isExpanded: false)
+                }
+            }
         }
     }
     
@@ -142,16 +180,6 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
         guard let cities = cities else { return }
         if indexPath.section == cities.count - 2 {
             fetchNextPage()
-        }
-    }
-    
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        guard indexPath.row == 0 else { return }
-
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.cities?[indexPath.section].isExpanded.toggle()
-            tableView.reloadSections(IndexSet(integer: indexPath.section), with: .fade)
         }
     }
 }

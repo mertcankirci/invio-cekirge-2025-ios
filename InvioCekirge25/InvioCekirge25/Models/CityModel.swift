@@ -10,8 +10,12 @@ import Foundation
 struct CityModel: Codable {
     let city: String
     let locations: [LocationModel]
-    ///We'll use isExpanded in UI layer. This is why it isn't in the coding keys enum.
+    ///We'll use the rest in UI layer. This is why they aren't in the coding keys enum.
     var isExpanded: Bool = false
+    var cellImage: String? {
+        let validLocations = locations.filter({ $0.image != nil })
+        return validLocations.randomElement()?.image
+    }
     
     enum CodingKeys: String, CodingKey {
         case city, locations

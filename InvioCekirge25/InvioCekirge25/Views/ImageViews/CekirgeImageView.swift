@@ -7,49 +7,68 @@
 
 import UIKit
 import Kingfisher
-import SwiftUICore
 
 class CekirgeImageView: UIImageView {
-    @Environment(\.colorScheme) var colorScheme
     var currentURLString: String?
-    
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         configure()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func configure() {
         self.translatesAutoresizingMaskIntoConstraints = false
         self.clipsToBounds = true
         self.contentMode = .scaleAspectFill
         self.backgroundColor = .systemGray
     }
-    
-    func downloadImage(from urlString: String?) {
+
+    func downloadImage(from urlString: String?, completion: ((Bool) -> Void)? = nil) {
         guard let urlString = urlString, let url = URL(string: urlString) else {
             Log.warning("Couldn't download image. Something wrong with the url.")
+            completion?(false)
             return
         }
 
         currentURLString = urlString
-        
         let placeHolderImage = UIImage()
+        let processor = DownsamplingImageProcessor(size: self.bounds.size)
 
-        self.kf.setImage(with: url, placeholder: placeHolderImage, options: [.transition(.fade(0.3))], completionHandler: { [weak self] result in
+        self.kf.setImage(
+            with: url,
+            placeholder: placeHolderImage,
+            options: [
+                .processor(processor),
+                .scaleFactor(UIScreen.main.scale),
+                .transition(.fade(0.3)),
+                .cacheOriginalImage
+            ]
+        ) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let value):
                 if self.currentURLString == urlString {
                     Log.success("Downloaded image successfully.")
-                    self.image = value.image
+                    DispatchQueue.main.async {
+                        self.image = value.image
+                        completion?(true)
+                    }
                 }
             case .failure:
                 Log.error("Error in downloading image.")
+                DispatchQueue.main.async {
+                    completion?(false)
+                }
             }
-        })
+        }
+    }
+
+    func resetImage() {
+        self.image = nil
+        self.currentURLString = nil
     }
 }
