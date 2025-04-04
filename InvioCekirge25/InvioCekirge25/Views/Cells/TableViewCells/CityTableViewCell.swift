@@ -14,16 +14,19 @@ protocol CityTableViewCellDelegate: AnyObject {
 class CityTableViewCell: UITableViewCell {
     
     static let reuseId = "CityTableViewCell"
+    
     let cityLabel = UILabel()
     let locationLabel = UILabel()
     let navigationButton = UIButton()
     let includesLocationImage = UIImageView()
     let includesLocationContainer = UIView()
     let cityImageView = CekirgeGradientImageView(frame: .zero)
+    
     private let locationImageConfiguration = UIImage.SymbolConfiguration(pointSize: 12, weight: .bold)
+    
     weak var delegate: CityTableViewCellDelegate?
     private var city: CityModel?
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         configureLabels()
@@ -50,7 +53,7 @@ class CityTableViewCell: UITableViewCell {
         
         locationLabel.translatesAutoresizingMaskIntoConstraints = false
         locationLabel.font = .systemFont(ofSize: 12, weight: .light)
-        locationLabel.textColor = .systemGray3
+        locationLabel.textColor = .white.withAlphaComponent(0.7)
     }
     
     func configureButton() {
@@ -74,7 +77,7 @@ class CityTableViewCell: UITableViewCell {
         includesLocationContainer.layer.cornerRadius = 16
         includesLocationContainer.layer.masksToBounds = true
         includesLocationContainer.backgroundColor = .gray.withAlphaComponent(0.5)
-
+        
         includesLocationImage.translatesAutoresizingMaskIntoConstraints = false
         includesLocationImage.contentMode = .scaleAspectFit
         includesLocationImage.isUserInteractionEnabled = false
@@ -91,8 +94,8 @@ class CityTableViewCell: UITableViewCell {
         NSLayoutConstraint.activate([
             cityImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             cityImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            cityImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
-            cityImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6),
+            cityImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
+            cityImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             cityImageView.heightAnchor.constraint(equalToConstant: 80),
             
             includesLocationContainer.leadingAnchor.constraint(equalTo: cityImageView.leadingAnchor, constant: 16),
@@ -123,7 +126,13 @@ class CityTableViewCell: UITableViewCell {
         locationLabel.text = "\(city.locations.count) places"
         self.city = city
         cityImageView.downloadImage(from: city.cellImage)
-        includesLocationImage.image = UIImage(systemName: city.locations.count > 0 ? "plus" : "minus", withConfiguration: locationImageConfiguration)
+        
+        if city.locations.count <= 0 {
+            includesLocationImage.isHidden = true
+            includesLocationContainer.isHidden = true
+        } else {
+            includesLocationImage.image = UIImage(systemName: city.locations.count > 0 ? "plus" : "minus", withConfiguration: locationImageConfiguration)
+        }
     }
     
     func onSelectPerform(isExpanded: Bool) {
@@ -133,12 +142,22 @@ class CityTableViewCell: UITableViewCell {
         UIView.transition(with: includesLocationImage,
                           duration: 0.4,
                           options: .transitionCrossDissolve,
-                          animations: {
-                              self.includesLocationImage.image = newImage
-                          },
+                          animations: { [weak self] in
+            guard let self = self else { return }
+            self.includesLocationImage.image = newImage
+            self.adjustImagesMaskedCorners(isExpanded)
+        },
                           completion: nil)
     }
-
+    
+    func adjustImagesMaskedCorners(_ isExpanded: Bool) {
+        if isExpanded {
+            self.cityImageView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        } else {
+            self.cityImageView.layer.maskedCorners = [.layerMaxXMaxYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMinXMinYCorner]
+        }
+    }
+    
 }
 
 extension CityTableViewCell {

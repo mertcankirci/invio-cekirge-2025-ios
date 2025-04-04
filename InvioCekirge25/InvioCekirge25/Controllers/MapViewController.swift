@@ -7,6 +7,7 @@
 
 import UIKit
 import MapKit
+import CoreLocation
 
 class MapViewController: UIViewController {
     
@@ -15,15 +16,28 @@ class MapViewController: UIViewController {
     weak var coordinator: MapCoordinator?
     let mapView = MKMapView()
     let collectionView = UICollectionView(frame: .zero, collectionViewLayout: AppLayouts.shared.snapToCenterLocationListLayout())
+    let alertController = UIAlertController(title: "Alert", message: "Do you want to see your location on map?", preferredStyle: .alert)
+    private let userLocationButton = UIButton()
+    private var userLocation: CLLocation?
+    
+    //MARK: - Services
+    private let authorizationService = AuthorizationService()
+    private let locationAuthService = LocationAuthorizationService()
+    private let locationService = LocationService()
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
         configureVC()
         configureMapView()
         configureCollectionView()
+        configureAlertController()
+        configureButtons()
         
         configureUI()
         addPin()
+        
+        handleLocationAuthorization()
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -31,10 +45,10 @@ class MapViewController: UIViewController {
         coordinator?.coordinatorDidFinish()
     }
     
-    
     func configureUI() {
-        view.addSubview(mapView)
-        view.addSubview(collectionView)
+        [mapView, collectionView, userLocationButton].forEach { component in
+            view.addSubview(component)
+        }
         
         NSLayoutConstraint.activate([
             mapView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -45,7 +59,12 @@ class MapViewController: UIViewController {
             collectionView.bottomAnchor.constraint(equalTo: mapView.bottomAnchor, constant: -32),
             collectionView.leadingAnchor.constraint(equalTo: mapView.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: mapView.trailingAnchor),
-            collectionView.heightAnchor.constraint(equalToConstant: 120)
+            collectionView.heightAnchor.constraint(equalToConstant: 120),
+            
+            userLocationButton.bottomAnchor.constraint(equalTo: collectionView.topAnchor, constant: -16),
+            userLocationButton.trailingAnchor.constraint(equalTo: mapView.trailingAnchor, constant: -16),
+            userLocationButton.heightAnchor.constraint(equalToConstant: 40),
+            userLocationButton.widthAnchor.constraint(equalToConstant: 40)
         ])
     }
     
@@ -68,12 +87,70 @@ class MapViewController: UIViewController {
         self.collectionView.dataSource = self
         
         collectionView.register(LocationListCollectionViewCell.self, forCellWithReuseIdentifier: LocationListCollectionViewCell.reuseId)
+    }
+    
+    func configureAlertController() {
+        let yesAction = UIAlertAction(title: "Yes", style: .default) {[weak self] _ in
+            guard let self = self else { return }
+            let authStatus = self.locationAuthService.getAuthorizationStatus()
+            
+            if authStatus == .notDetermined {
+                self.authorizationService.requestAuthorization(for: locationAuthService)
+                return
+            }
         
+            handleLocationAuthorization(fromUserAction: true)
+        }
+
+        let noAction = UIAlertAction(title: "No", style: .cancel) { _ in }
+
+        alertController.addAction(yesAction)
+        alertController.addAction(noAction)
+    }
+    
+    func configureButtons() {
+        userLocationButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
+        let image = UIImage(systemName: "safari", withConfiguration: config)?.withTintColor(.accent, renderingMode: .alwaysOriginal)
+
+        userLocationButton.setImage(image, for: .normal)
+        userLocationButton.imageView?.contentMode = .scaleAspectFit
+
+        userLocationButton.layer.cornerRadius = 20
+        userLocationButton.layer.masksToBounds = true
+        userLocationButton.backgroundColor = .gray.withAlphaComponent(0.5)
+
+        userLocationButton.addTarget(self, action: #selector(didTapLocationButton), for: .touchUpInside)
     }
 }
 
 ///MapView Delegate extension
 extension MapViewController: MKMapViewDelegate {
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        if annotation is MKUserLocation {
+            return nil
+        }
+
+        let identifier = "LocationMarker"
+        var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+
+        if annotationView == nil {
+            annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+            annotationView?.canShowCallout = true
+        } else {
+            annotationView?.annotation = annotation
+        }
+        
+        ///If annotation is user, configure it based on the situation.
+        if annotation.title == "You" {
+            annotationView?.markerTintColor = .systemBlue
+            annotationView?.glyphText = "🧍"
+        }
+
+        return annotationView
+    }
+
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         guard let selectedAnnotation = view.annotation else { return }
 
@@ -81,8 +158,10 @@ extension MapViewController: MKMapViewDelegate {
             if let annotationView = mapView.view(for: annotation) as? MKMarkerAnnotationView,
                annotation !== selectedAnnotation {
                 DispatchQueue.main.async {
-                    annotationView.markerTintColor = .systemRed
-                    annotationView.glyphText = nil
+                    if annotation.title != "You" {
+                        annotationView.markerTintColor = .systemRed
+                        annotationView.glyphText = nil
+                    }
                 }
             }
         }
@@ -103,10 +182,11 @@ extension MapViewController: MKMapViewDelegate {
     }
     
     func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {
-        guard let annotation = mapView.annotations.first(where: { $0.title == locations?.first?.name }), mapView.selectedAnnotations.isEmpty else { return }
+        guard let annotation = mapView.annotations.first(where: { $0.title != "You" && $0.title == locations?.first?.name }),
+              mapView.selectedAnnotations.isEmpty else { return }
 
         mapView.selectAnnotation(annotation, animated: true)
-        
+
         if let annotationView = mapView.view(for: annotation) {
             self.mapView(mapView, didSelect: annotationView)
         }
@@ -151,7 +231,9 @@ extension MapViewController {
         var annotations: [MKPointAnnotation] = []
 
         for location in locations {
-            let annotation = createAnnotation(with: location)
+            let annotation = createAnnotation(title: location.name,
+                                              lat: CGFloat(location.coordinates.lat),
+                                              lon: CGFloat(location.coordinates.lng))
             annotations.append(annotation)
         }
 
@@ -159,12 +241,12 @@ extension MapViewController {
         mapView.showAnnotations(annotations, animated: false)
     }
     
-    func createAnnotation(with location: LocationModel) -> MKPointAnnotation {
+    func createAnnotation(title: String, lat: CGFloat, lon: CGFloat) -> MKPointAnnotation {
         let annotation = MKPointAnnotation()
-        annotation.title = location.name
+        annotation.title = title
         annotation.coordinate = CLLocationCoordinate2D(
-            latitude: CLLocationDegrees(location.coordinates.lat),
-            longitude: CLLocationDegrees(location.coordinates.lng)
+            latitude: lat,
+            longitude: lon
         )
         
         return annotation
@@ -185,6 +267,61 @@ extension MapViewController {
         
         let region = MKCoordinateRegion(center: center, span: span)
         mapView.setRegion(region, animated: true)
+    }
+    
+    func handleLocationAuthorization(fromUserAction: Bool = false) {
+        let authStatus = locationAuthService.getAuthorizationStatus()
+        
+        switch authStatus {
+        case .notDetermined:
+            present(alertController, animated: true)
+        case .restricted, .denied:
+            if fromUserAction {
+                openSettings()
+            } else {
+                present(alertController, animated: true)
+            }
+        case .authorizedAlways, .authorizedWhenInUse, .authorized:
+            handleUserLocation()
+        @unknown default:
+            break
+        }
+    }
+    
+    func handleUserLocation() {
+        Task {
+            let result = try await locationService.requestLocation()
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                self.userLocation = result
+
+                let annotation = createAnnotation(title: "You", lat: result.coordinate.latitude, lon: result.coordinate.longitude)
+                self.mapView.addAnnotation(annotation)
+            }
+        }
+    }
+    
+    @objc
+    func didTapLocationButton() {
+        if let userLocation = userLocation {
+            let lat = userLocation.coordinate.latitude
+            let lon = userLocation.coordinate.longitude
+            let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            let region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lon), span: span)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.mapView.setRegion(region, animated: true)
+            }
+        } else {
+            handleLocationAuthorization(fromUserAction: true)
+        }
+    }
+    
+    func openSettings() {
+        if let settingsURL = URL(string: UIApplication.openSettingsURLString),
+           UIApplication.shared.canOpenURL(settingsURL) {
+            UIApplication.shared.open(settingsURL)
+        }
     }
 }
 

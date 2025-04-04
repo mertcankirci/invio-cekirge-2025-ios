@@ -16,7 +16,8 @@ class MainViewController: UIViewController {
     ///for pagination
     private var page: Int = 1
     private var fetching: Bool = false ///Variable to indicate wether if the function is fetching or not to ensure pagination correctness.
-    private let service = APIService()
+    private let apiService = APIService()
+    private let persistenceService = PersistenceService.shared
     let tableView = UITableView()
     
     override func viewDidLoad() {
@@ -47,7 +48,7 @@ class MainViewController: UIViewController {
 
         tableView.backgroundView?.backgroundColor = .systemGroupedBackground
         
-        tableView.estimatedRowHeight = 120
+        tableView.estimatedRowHeight = 44
         tableView.rowHeight = UITableView.automaticDimension
         
         tableView.separatorStyle = .none
@@ -78,7 +79,8 @@ extension MainViewController {
             guard let self = self else { return }
             
             do {
-                let result = try await self.service.fetchData(for: page)
+                let result = try await self.apiService.fetchData(for: page)
+                
                 await MainActor.run {
                     
                     if self.cities == nil {
@@ -114,16 +116,33 @@ extension MainViewController {
     
     @objc
     func closeButtonTapped() {
-        guard let cities = cities else { return }
-        
-        for index in cities.indices {
-            self.cities?[index].isExpanded = false
+        guard var cities = cities else { return }
+
+        var indexPathsToDelete: [IndexPath] = []
+
+        for (sectionIndex, var city) in cities.enumerated() {
+            if city.isExpanded {
+                city.isExpanded = false
+                let indexPaths = (1...city.locations.count).map {
+                    IndexPath(row: $0, section: sectionIndex)
+                }
+                indexPathsToDelete.append(contentsOf: indexPaths)
+            }
+            cities[sectionIndex] = city
         }
 
-        let sections = IndexSet(integersIn: 0..<(self.cities?.count ?? 0))
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.tableView.reloadSections(sections, with: .fade)
+        self.cities = cities
+
+        tableView.beginUpdates()
+        tableView.deleteRows(at: indexPathsToDelete, with: .fade)
+        tableView.endUpdates()
+
+        for cell in tableView.visibleCells {
+            if let indexPath = tableView.indexPath(for: cell),
+               indexPath.row == 0,
+               let cityCell = cell as? CityTableViewCell {
+                cityCell.onSelectPerform(isExpanded: false)
+            }
         }
     }
 }
@@ -151,14 +170,19 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
         if indexPath.row == 0 {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: CityTableViewCell.reuseId) as? CityTableViewCell else { return UITableViewCell() }
             
-            cell.delegate = self ///Setting the delegate for communication
+            cell.delegate = self
             cell.set(city: city)
+            cell.adjustImagesMaskedCorners(city.isExpanded) ///To ensure box like UI.
             return cell
         } else {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: LocationTableViewCell.reuseId) as? LocationTableViewCell else { return UITableViewCell() }
             let locationIndex = indexPath.row - 1
             let location = city.locations[locationIndex]
-            cell.set(location: location)
+            let isFav = persistenceService.isFavorite(location: location)
+            
+            cell.set(location: location, isFavorite: isFav)
+            cell.delegate = self
+            
             return cell
         }
     }
@@ -168,34 +192,40 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
 
         guard indexPath.row == 0 else { return }
         guard let cityCount = cities?[indexPath.section].locations.count, cityCount > 0 else { return }
-        
+
         cities?[indexPath.section].isExpanded.toggle()
-        
+
         if let city = cities?[indexPath.section] {
-            if city.isExpanded {
-                let indexPaths = (1...city.locations.count).map { 
-                    IndexPath(row: $0, section: indexPath.section)
-                }
-                DispatchQueue.main.async {
-                    tableView.insertRows(at: indexPaths, with: .fade)
-                    cell.onSelectPerform(isExpanded: true)
-                }
-            } else {
-                let indexPaths = (1...city.locations.count).map { 
-                    IndexPath(row: $0, section: indexPath.section)
-                }
-                DispatchQueue.main.async {
-                    tableView.deleteRows(at: indexPaths, with: .fade)
-                    cell.onSelectPerform(isExpanded: false)
-                }
+            let indexPaths = (1...city.locations.count).map {
+                IndexPath(row: $0, section: indexPath.section)
             }
+
+            tableView.beginUpdates()
+            if city.isExpanded {
+                tableView.insertRows(at: indexPaths, with: .fade)
+                cell.onSelectPerform(isExpanded: true)
+            } else {
+                tableView.deleteRows(at: indexPaths, with: .fade)
+                cell.onSelectPerform(isExpanded: false)
+            }
+            tableView.endUpdates()
         }
     }
+
     
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         guard let cities = cities else { return }
-        if indexPath.section == cities.count - 2 {
+        if indexPath.section == cities.count - 1 {
             fetchNextPage()
+        }
+        
+        if let locationCell = cell as? LocationTableViewCell {
+            let city = cities[indexPath.section]
+            let isLast = indexPath.row == city.locations.count
+
+            if isLast {
+                locationCell.ifLastCellPerform()
+            }
         }
     }
 }
@@ -204,5 +234,12 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
 extension MainViewController: CityTableViewCellDelegate {
     func didTapNavigationButton(from city: CityModel) {
         coordinator?.navigateToMapDetailScreen(animated: true, title: city.city, locations: city.locations)
+    }
+}
+
+extension MainViewController: LocationTableViewCellDelegate {
+    func didTapLocationCell(for location: LocationModel) {
+        ///Coordinator ile navigation tetiklenecek.
+        ///Belki ekstradan guncellemeler loglamalar yapilabilir.
     }
 }

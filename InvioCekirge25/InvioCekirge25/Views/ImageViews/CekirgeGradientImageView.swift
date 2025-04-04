@@ -44,7 +44,7 @@ class CekirgeGradientImageView: CekirgeImageView {
         ])
 
         gradientLayer.colors = [
-            UIColor.black.cgColor,
+            UIColor.black.withAlphaComponent(0.9).cgColor,
             UIColor.clear.cgColor
         ]
         gradientLayer.locations = [0.0, 1.0]

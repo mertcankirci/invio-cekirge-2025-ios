@@ -10,7 +10,6 @@ import Foundation
 class APIService {
     private let baseUrl = "https://storage.googleapis.com/invio-com/usg-challenge/city-location/page-"
     
-    //fetch data from api with pagination
     func fetchData(for page: Int = 1) async throws -> LocationResultModel {
         let urlString = baseUrl + "\(page).json"
         guard let url = URL(string: urlString) else { throw NetworkError.notFound }

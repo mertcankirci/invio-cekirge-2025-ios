@@ -1,0 +1,61 @@
+//
+//  LocationService.swift
+//  InvioCekirge25
+//
+//  Created by Mertcan Kırcı on 31.03.2025.
+//
+
+import CoreLocation
+
+class LocationService: NSObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    private var locationHandler: ((Result<CLLocation, Error>) -> Void)?
+    
+    private var currentTask: Task<CLLocation, Error>?
+    
+    override init() {
+        super.init()
+        manager.delegate = self
+    }
+
+    func requestLocation() async throws -> CLLocation {
+        if let currentTask = currentTask {
+            return try await currentTask.value
+        }
+
+        let task = Task<CLLocation, Error> {
+            try await withCheckedThrowingContinuation { continuation in
+                self.locationHandler = { [weak self] result in
+                    self?.currentTask = nil
+                    switch result {
+                    case .success(let location):
+                        continuation.resume(returning: location)
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                }
+                self.manager.requestWhenInUseAuthorization()
+                self.manager.requestLocation()
+            }
+        }
+
+        self.currentTask = task
+        return try await task.value
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.last {
+            locationHandler?(.success(location))
+            locationHandler = nil
+            Log.success("Found user's location.")
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        locationHandler?(.failure(error))
+        locationHandler = nil
+        Log.error("Failed to find user's location.")
+    }
+}
+
+
