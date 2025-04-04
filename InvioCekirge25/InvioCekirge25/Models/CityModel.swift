@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CityModel: Codable {
+class CityModel: Codable {
     let city: String
     let locations: [LocationModel]
     ///We'll use the rest in UI layer. This is why they aren't in the coding keys enum.

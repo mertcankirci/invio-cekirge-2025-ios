@@ -16,7 +16,7 @@ class MapViewController: UIViewController {
     weak var coordinator: MapCoordinator?
     let mapView = MKMapView()
     let collectionView = UICollectionView(frame: .zero, collectionViewLayout: AppLayouts.shared.snapToCenterLocationListLayout())
-    let alertController = UIAlertController(title: "Alert", message: "Do you want to see your location on map?", preferredStyle: .alert)
+    let alertController = UIAlertController(title: "Alert", message: "Konumunu haritada görmek ister misin?", preferredStyle: .alert)
     private let userLocationButton = UIButton()
     private var userLocation: CLLocation?
     
@@ -90,7 +90,7 @@ class MapViewController: UIViewController {
     }
     
     func configureAlertController() {
-        let yesAction = UIAlertAction(title: "Yes", style: .default) {[weak self] _ in
+        let yesAction = UIAlertAction(title: "Evet", style: .default) {[weak self] _ in
             guard let self = self else { return }
             let authStatus = self.locationAuthService.getAuthorizationStatus()
             
@@ -102,7 +102,7 @@ class MapViewController: UIViewController {
             handleLocationAuthorization(fromUserAction: true)
         }
 
-        let noAction = UIAlertAction(title: "No", style: .cancel) { _ in }
+        let noAction = UIAlertAction(title: "Hayır", style: .cancel) { _ in }
 
         alertController.addAction(yesAction)
         alertController.addAction(noAction)
@@ -143,7 +143,7 @@ extension MapViewController: MKMapViewDelegate {
         }
         
         ///If annotation is user, configure it based on the situation.
-        if annotation.title == "You" {
+        if annotation.title == "Sen" {
             annotationView?.markerTintColor = .systemBlue
             annotationView?.glyphText = "🧍"
         }
@@ -158,7 +158,7 @@ extension MapViewController: MKMapViewDelegate {
             if let annotationView = mapView.view(for: annotation) as? MKMarkerAnnotationView,
                annotation !== selectedAnnotation {
                 DispatchQueue.main.async {
-                    if annotation.title != "You" {
+                    if annotation.title != "Sen" {
                         annotationView.markerTintColor = .systemRed
                         annotationView.glyphText = nil
                     }
@@ -182,7 +182,7 @@ extension MapViewController: MKMapViewDelegate {
     }
     
     func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {
-        guard let annotation = mapView.annotations.first(where: { $0.title != "You" && $0.title == locations?.first?.name }),
+        guard let annotation = mapView.annotations.first(where: { $0.title != "Sen" && $0.title == locations?.first?.name }),
               mapView.selectedAnnotations.isEmpty else { return }
 
         mapView.selectAnnotation(annotation, animated: true)
@@ -295,7 +295,7 @@ extension MapViewController {
                 guard let self = self else { return }
                 self.userLocation = result
 
-                let annotation = createAnnotation(title: "You", lat: result.coordinate.latitude, lon: result.coordinate.longitude)
+                let annotation = createAnnotation(title: "Sen", lat: result.coordinate.latitude, lon: result.coordinate.longitude)
                 self.mapView.addAnnotation(annotation)
             }
         }

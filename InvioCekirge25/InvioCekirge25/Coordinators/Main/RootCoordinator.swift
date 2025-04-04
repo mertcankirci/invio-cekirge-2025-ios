@@ -26,8 +26,6 @@ final class RootCoordinator: Coordinator, ParentCoordinator {
         mainViewController!.cities = cities
         mainViewController!.totalPage = totalPage
         navigationController.setViewControllers([mainViewController!], animated: animated)
-        
-        Log.success("Route coordinator initialized.")
     }
 }
 
@@ -44,5 +42,16 @@ extension RootCoordinator {
         mapCoordinator.parent = self
         addChild(mapCoordinator)
         mapCoordinator.start(animated: animated)
+    }
+    
+    func navigateToLocationDetailScreen(animated: Bool, location: LocationModel, cityName: String) {
+        let locationDetailCoordinator = LocationDetailCoordinator(navigationController: navigationController, location: location, cityName: cityName)
+        locationDetailCoordinator.parent = self
+        addChild(locationDetailCoordinator)
+        locationDetailCoordinator.start(animated: animated)
+        
+        if let vc = locationDetailCoordinator.viewControllerRef as? LocationDetailViewController {
+            vc.delegate = mainViewController
+        }
     }
 }

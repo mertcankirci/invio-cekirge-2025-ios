@@ -157,7 +157,7 @@
 				DEVELOPMENT_TEAM = NJ3YBT6N93;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = InvioCekirge25/Info.plist;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location for showing your location in map.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Konumunuzu görmek için lütfen izin verin.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -185,7 +185,7 @@
 				DEVELOPMENT_TEAM = NJ3YBT6N93;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = InvioCekirge25/Info.plist;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location for showing your location in map.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Konumunuzu görmek için lütfen izin verin.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

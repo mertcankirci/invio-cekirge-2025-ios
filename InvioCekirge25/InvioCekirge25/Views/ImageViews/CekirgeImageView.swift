@@ -24,7 +24,7 @@ class CekirgeImageView: UIImageView {
         self.translatesAutoresizingMaskIntoConstraints = false
         self.clipsToBounds = true
         self.contentMode = .scaleAspectFill
-        self.backgroundColor = .systemGray
+        self.backgroundColor = .black
     }
 
     func downloadImage(from urlString: String?, completion: ((Bool) -> Void)? = nil) {
@@ -45,14 +45,13 @@ class CekirgeImageView: UIImageView {
                 .processor(processor),
                 .scaleFactor(UIScreen.main.scale),
                 .transition(.fade(0.3)),
-                .cacheOriginalImage
+                .cacheOriginalImage,
             ]
         ) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let value):
                 if self.currentURLString == urlString {
-                    Log.success("Downloaded image successfully.")
                     DispatchQueue.main.async {
                         self.image = value.image
                         completion?(true)
@@ -70,5 +69,6 @@ class CekirgeImageView: UIImageView {
     func resetImage() {
         self.image = nil
         self.currentURLString = nil
+        self.kf.cancelDownloadTask()
     }
 }

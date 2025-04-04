@@ -44,6 +44,7 @@ class CityTableViewCell: UITableViewCell {
         super.prepareForReuse()
         cityLabel.text = nil
         cityImageView.resetImage()
+        includesLocationImage.image = nil
     }
     
     func configureLabels() {
@@ -87,9 +88,11 @@ class CityTableViewCell: UITableViewCell {
     func configureCell() {
         backgroundColor = .clear
         selectionStyle = .none
-        [cityImageView, cityLabel, locationLabel, navigationButton, includesLocationImage, includesLocationContainer, includesLocationImage].forEach { view in
+        [cityImageView, cityLabel, locationLabel, navigationButton, includesLocationContainer].forEach { view in
             contentView.addSubview(view)
         }
+        
+        includesLocationContainer.addSubview(includesLocationImage)
         
         NSLayoutConstraint.activate([
             cityImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -123,7 +126,7 @@ class CityTableViewCell: UITableViewCell {
     
     func set(city: CityModel) {
         cityLabel.text = city.city
-        locationLabel.text = "\(city.locations.count) places"
+        locationLabel.text = "\(city.locations.count) lokasyon"
         self.city = city
         cityImageView.downloadImage(from: city.cellImage)
         
@@ -131,7 +134,7 @@ class CityTableViewCell: UITableViewCell {
             includesLocationImage.isHidden = true
             includesLocationContainer.isHidden = true
         } else {
-            includesLocationImage.image = UIImage(systemName: city.locations.count > 0 ? "plus" : "minus", withConfiguration: locationImageConfiguration)
+            includesLocationImage.image = UIImage(systemName: "plus", withConfiguration: locationImageConfiguration)
         }
     }
     

@@ -8,7 +8,7 @@
 import UIKit
 
 protocol LocationTableViewCellDelegate: AnyObject {
-    func didTapLocationCell(for location: LocationModel)
+    func errorOccured(with errorMessage: String)
 }
 
 class LocationTableViewCell: UITableViewCell {
@@ -20,8 +20,8 @@ class LocationTableViewCell: UITableViewCell {
     private let favButton = UIButton()
     private var isFavorite: Bool = false
     
-    var location: LocationModel?
     weak var delegate: LocationTableViewCellDelegate?
+    var location: LocationModel?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -34,6 +34,14 @@ class LocationTableViewCell: UITableViewCell {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func setHighlighted(_ highlighted: Bool, animated: Bool) {
+        super.setHighlighted(highlighted, animated: animated)
+
+        UIView.animate(withDuration: 0.25) {
+            self.mainContainer.backgroundColor = highlighted ? UIColor.systemGray5 : UIColor.secondarySystemGroupedBackground
+        }
     }
     
     override func prepareForReuse() {
@@ -100,9 +108,8 @@ class LocationTableViewCell: UITableViewCell {
         self.isFavorite = isFavorite
         locationLabel.text = location.name
         
-        if isFavorite {
-            favButton.setImage(UIImage(systemName: "heart.fill"), for: .normal)
-        }
+        let symbolName = isFavorite ? "heart.fill" : "heart"
+        favButton.setImage(UIImage(systemName: symbolName), for: .normal)
     }
     
     ///Trigger this method on mainVC for better UI/UX
@@ -120,20 +127,16 @@ extension LocationTableViewCell {
     func didTapFavButton() {
         guard let location = location else { return }
         
-        if isFavorite {
-            do {
+        do {
+            if isFavorite {
                 try PersistenceService.shared.deleteFavLocation(for: location)
                 isFavorite = false
-            } catch {
-                return
-            }
-        } else {
-            do {
+            } else {
                 try PersistenceService.shared.saveFavLocation(for: location)
                 isFavorite = true
-            } catch {
-                return
             }
+        } catch {
+            delegate?.errorOccured(with: error.localizedDescription)
         }
 
         UIView.transition(with: favButton, duration: 0.4) {
@@ -141,7 +144,6 @@ extension LocationTableViewCell {
             self.favButton.setImage(UIImage(systemName: symbolName), for: .normal)
         }
         
-        delegate?.didTapLocationCell(for: location)
         UIHelper.successHapticFeedback()
     }
 }

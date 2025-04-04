@@ -27,8 +27,6 @@ class MapCoordinator: ChildCoordinator {
         mapVC.title = title
         mapVC.locations = locations
         navigationController.pushViewController(mapVC, animated: animated)
-        
-        Log.success("Favourites coordinator initialized.")
     }
     
     func coordinatorDidFinish() {

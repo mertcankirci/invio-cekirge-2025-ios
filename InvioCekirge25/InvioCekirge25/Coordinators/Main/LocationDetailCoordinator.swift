@@ -13,10 +13,12 @@ class LocationDetailCoordinator: ChildCoordinator {
     var parent: RootCoordinator?
     var navigationController: UINavigationController
     var location: LocationModel
+    var cityName: String
     
-    init(navigationController: UINavigationController, location: LocationModel) {
+    init(navigationController: UINavigationController, location: LocationModel, cityName: String) {
         self.navigationController = navigationController
         self.location = location
+        self.cityName = cityName
     }
     
     func start(animated: Bool) {
@@ -24,12 +26,19 @@ class LocationDetailCoordinator: ChildCoordinator {
         viewControllerRef = locationDetailVC
         locationDetailVC.coordinator = self
         locationDetailVC.location = location
+        locationDetailVC.cityNameLabel.text = cityName.uppercased()
         navigationController.pushViewController(locationDetailVC, animated: animated)
-        
-        Log.success("Favourites coordinator initialized.")
     }
     
     func coordinatorDidFinish() {
         parent?.childDidFinish(self)
+    }
+}
+
+extension LocationDetailCoordinator {
+    func navigateToMapDetail(_ location: LocationModel) {
+        let title = location.name
+        let locationArray: [LocationModel] = [location]
+        parent?.navigateToMapDetailScreen(animated: true, title: title, locations: locationArray)
     }
 }

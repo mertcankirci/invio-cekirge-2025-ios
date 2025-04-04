@@ -15,16 +15,6 @@ protocol Coordinator: AnyObject {
     func popViewController(animated: Bool)
 }
 
-extension Coordinator {
-    func popViewController(animated: Bool) {
-        navigationController.popViewController(animated: true)
-    }
-    
-    func popToViewController(ofClass: AnyClass, animated: Bool) {
-        navigationController.popToViewController(ofClass: ofClass, animated: animated)
-    }
-}
-
 protocol ParentCoordinator: Coordinator {
     var childCoordinators: [Coordinator] { get set }
     
@@ -33,22 +23,7 @@ protocol ParentCoordinator: Coordinator {
     func childDidFinish(_ child: Coordinator?)
 }
 
-extension ParentCoordinator {
-    func addChild(_ child: Coordinator?) {
-        if let child = child {
-            childCoordinators.append(child)
-        }
-    }
-    
-    func childDidFinish(_ child: Coordinator?) {
-        for (index, coordinator) in childCoordinators.enumerated() {
-            if coordinator === child {
-                childCoordinators.remove(at: index)
-                break
-            }
-        }
-    }
-}
+
 
 protocol ChildCoordinator: Coordinator {
     var viewControllerRef: UIViewController? {get set}

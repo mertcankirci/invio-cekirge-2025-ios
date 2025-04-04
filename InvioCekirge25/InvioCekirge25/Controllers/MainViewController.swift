@@ -31,7 +31,7 @@ class MainViewController: UIViewController {
     func configureVC() {
         view.backgroundColor = .systemGroupedBackground
         navigationController?.navigationBar.prefersLargeTitles = true
-        title = "Invio Cekirge 2025"
+        title = "Invio Çekirge 2025"
         
         navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.accent]
         
@@ -48,7 +48,7 @@ class MainViewController: UIViewController {
 
         tableView.backgroundView?.backgroundColor = .systemGroupedBackground
         
-        tableView.estimatedRowHeight = 44
+        tableView.estimatedRowHeight = 100
         tableView.rowHeight = UITableView.automaticDimension
         
         tableView.separatorStyle = .none
@@ -120,7 +120,7 @@ extension MainViewController {
 
         var indexPathsToDelete: [IndexPath] = []
 
-        for (sectionIndex, var city) in cities.enumerated() {
+        for (sectionIndex, city) in cities.enumerated() {
             if city.isExpanded {
                 city.isExpanded = false
                 let indexPaths = (1...city.locations.count).map {
@@ -180,22 +180,23 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
             let location = city.locations[locationIndex]
             let isFav = persistenceService.isFavorite(location: location)
             
-            cell.set(location: location, isFavorite: isFav)
             cell.delegate = self
+            cell.set(location: location, isFavorite: isFav)
             
             return cell
         }
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        guard let cell = tableView.cellForRow(at: indexPath) as? CityTableViewCell else { return }
+        guard let cities = cities else { return }
+        let city = cities[indexPath.section]
 
-        guard indexPath.row == 0 else { return }
-        guard let cityCount = cities?[indexPath.section].locations.count, cityCount > 0 else { return }
+        if indexPath.row == 0 {
+            guard let cell = tableView.cellForRow(at: indexPath) as? CityTableViewCell else { return }
+            guard city.locations.count > 0 else { return }
 
-        cities?[indexPath.section].isExpanded.toggle()
+            cities[indexPath.section].isExpanded.toggle()
 
-        if let city = cities?[indexPath.section] {
             let indexPaths = (1...city.locations.count).map {
                 IndexPath(row: $0, section: indexPath.section)
             }
@@ -209,8 +210,13 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
                 cell.onSelectPerform(isExpanded: false)
             }
             tableView.endUpdates()
+        } else {
+            let locationIndex = indexPath.row - 1
+            let location = city.locations[locationIndex]
+            coordinator?.navigateToLocationDetailScreen(animated: true, location: location, cityName: city.city)
         }
     }
+
 
     
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
@@ -238,8 +244,26 @@ extension MainViewController: CityTableViewCellDelegate {
 }
 
 extension MainViewController: LocationTableViewCellDelegate {
-    func didTapLocationCell(for location: LocationModel) {
-        ///Coordinator ile navigation tetiklenecek.
-        ///Belki ekstradan guncellemeler loglamalar yapilabilir.
+    func errorOccured(with errorMessage: String) {
+        self.presentAlert(errorMessage: errorMessage)
     }
 }
+
+extension MainViewController: LocationDetailVCDelegate {
+    
+    func didUpdateFavoriteStatus(for location: LocationModel, isFavorite: Bool) {
+        guard let cities = cities else { return }
+
+        for (sectionIndex, city) in cities.enumerated() {
+            if let locationIndex = city.locations.firstIndex(where: { $0.id == location.id }) {
+                let indexPath = IndexPath(row: locationIndex + 1, section: sectionIndex)
+
+                if let cell = tableView.cellForRow(at: indexPath) as? LocationTableViewCell {
+                    cell.set(location: location, isFavorite: isFavorite)
+                }
+                break
+            }
+        }
+    }
+}
+

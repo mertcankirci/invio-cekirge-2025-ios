@@ -22,8 +22,6 @@ class FavouritesCoordinator: ChildCoordinator {
         viewControllerRef = favouritesVC
         favouritesVC.coordinator = self
         navigationController.pushViewController(favouritesVC, animated: animated)
-        
-        Log.success("Favourites coordinator initialized.")
     }
     
     func coordinatorDidFinish() {
