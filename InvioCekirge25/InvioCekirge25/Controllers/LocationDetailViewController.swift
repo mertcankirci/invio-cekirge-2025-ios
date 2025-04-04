@@ -38,6 +38,7 @@ class LocationDetailViewController: UIViewController {
     private let viewOnMapActionLabel = UILabel()
     private let viewOnMapImage = UIImageView()
     private let viewOnMapImageContainer = UIView() /// Container to hold viewOnMapImage
+
     let cityNameLabel = UILabel() ///We're setting this from coordinator.
     
     override func viewDidLoad() {
@@ -214,19 +215,19 @@ extension LocationDetailViewController {
     }
     
     private func addBlurEffectToTop() {
-        let blurEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
-        let blurView = UIVisualEffectView(effect: blurEffect)
-        blurView.translatesAutoresizingMaskIntoConstraints = false
-        blurView.layer.cornerRadius = 0
-        blurView.clipsToBounds = true
+        let topBlurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+        
+        topBlurView.translatesAutoresizingMaskIntoConstraints = false
+        topBlurView.layer.cornerRadius = 0
+        topBlurView.clipsToBounds = true
 
-        view.addSubview(blurView)
+        view.addSubview(topBlurView)
 
         NSLayoutConstraint.activate([
-            blurView.topAnchor.constraint(equalTo: view.topAnchor),
-            blurView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            blurView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            blurView.heightAnchor.constraint(equalToConstant: 100)
+            topBlurView.topAnchor.constraint(equalTo: view.topAnchor),
+            topBlurView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            topBlurView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            topBlurView.heightAnchor.constraint(equalToConstant: self.topbarHeight)
         ])
     }
     
