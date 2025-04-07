@@ -35,10 +35,14 @@ extension RootCoordinator {
         favouritesCoordinator.parent = self
         addChild(favouritesCoordinator)
         favouritesCoordinator.start(animated: animated)
+        
+        if let vc = favouritesCoordinator.viewControllerRef as? FavouritesViewController {
+            vc.delegate = mainViewController
+        }
     }
     
-    func navigateToMapDetailScreen(animated: Bool, title: String, locations: [LocationModel]) {
-        let mapCoordinator = MapCoordinator(navigationController: navigationController, title: title, locations: locations)
+    func navigateToMapDetailScreen(animated: Bool, title: String, locations: [LocationModel], isFromLocationDetailVC: Bool = false) {
+        let mapCoordinator = MapCoordinator(navigationController: navigationController, title: title, locations: locations, isFromLocationDetailVC: isFromLocationDetailVC)
         mapCoordinator.parent = self
         addChild(mapCoordinator)
         mapCoordinator.start(animated: animated)

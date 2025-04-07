@@ -27,4 +27,10 @@ class FavouritesCoordinator: ChildCoordinator {
     func coordinatorDidFinish() {
         parent?.childDidFinish(self)
     }
+    
+    func navigateToMapDetailView(with location: LocationModel) {
+        let title = location.name
+        let locationArr = [location]
+        parent?.navigateToMapDetailScreen(animated: true, title: title, locations: locationArr)
+    }
 }

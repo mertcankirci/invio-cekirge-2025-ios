@@ -9,6 +9,7 @@ import UIKit
 
 protocol LocationTableViewCellDelegate: AnyObject {
     func errorOccured(with errorMessage: String)
+    func removedFavorite(_ fav: LocationModel)
 }
 
 class LocationTableViewCell: UITableViewCell {
@@ -22,7 +23,7 @@ class LocationTableViewCell: UITableViewCell {
     
     weak var delegate: LocationTableViewCellDelegate?
     var location: LocationModel?
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         configureLabel()
@@ -38,7 +39,7 @@ class LocationTableViewCell: UITableViewCell {
     
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-
+        
         UIView.animate(withDuration: 0.25) {
             self.mainContainer.backgroundColor = highlighted ? UIColor.systemGray5 : UIColor.secondarySystemGroupedBackground
         }
@@ -54,11 +55,12 @@ class LocationTableViewCell: UITableViewCell {
     func configureLabel() {
         locationLabel.translatesAutoresizingMaskIntoConstraints = false
         locationLabel.textColor = .label
+        locationLabel.lineBreakMode = .byTruncatingTail
     }
     
     func configureContainer() {
         mainContainer.translatesAutoresizingMaskIntoConstraints = false
-        mainContainer.backgroundColor = .secondarySystemGroupedBackground
+        mainContainer.backgroundColor = InvioColors.secondaryGroupedBackground
         
         seperator.translatesAutoresizingMaskIntoConstraints = false
         seperator.backgroundColor = .opaqueSeparator
@@ -89,6 +91,7 @@ class LocationTableViewCell: UITableViewCell {
             
             locationLabel.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor, constant: 16),
             locationLabel.centerYAnchor.constraint(equalTo: mainContainer.centerYAnchor),
+            locationLabel.trailingAnchor.constraint(equalTo: favButton.leadingAnchor, constant: -8),
             
             favButton.trailingAnchor.constraint(equalTo: mainContainer.trailingAnchor, constant: -16),
             favButton.centerYAnchor.constraint(equalTo: mainContainer.centerYAnchor),
@@ -101,7 +104,6 @@ class LocationTableViewCell: UITableViewCell {
             seperator.heightAnchor.constraint(equalToConstant: 1),
         ])
     }
-
     
     func set(location: LocationModel, isFavorite: Bool) {
         self.location = location
@@ -112,11 +114,31 @@ class LocationTableViewCell: UITableViewCell {
         favButton.setImage(UIImage(systemName: symbolName), for: .normal)
     }
     
-    ///Trigger this method on mainVC for better UI/UX
+    ///Trigger this methods on parent for better UI/UX
     func ifLastCellPerform() {
         UIView.animate(withDuration: 0.25) {
             self.mainContainer.layer.cornerRadius = 12
             self.mainContainer.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        }
+        seperator.isHidden = true
+    }
+    
+    func ifFirstCellPerform() {
+        UIView.animate(withDuration: 0.25) {
+            self.mainContainer.layer.cornerRadius = 12
+            self.mainContainer.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        }
+    }
+    
+    func ifOnlyCellPerform() {
+        UIView.animate(withDuration: 0.25) {
+            self.mainContainer.layer.cornerRadius = 12
+            self.mainContainer.layer.maskedCorners = [
+                .layerMinXMinYCorner,
+                .layerMaxXMinYCorner,
+                .layerMinXMaxYCorner,
+                .layerMaxXMaxYCorner
+            ]
         }
         seperator.isHidden = true
     }
@@ -131,6 +153,7 @@ extension LocationTableViewCell {
             if isFavorite {
                 try PersistenceService.shared.deleteFavLocation(for: location)
                 isFavorite = false
+                delegate?.removedFavorite(location)
             } else {
                 try PersistenceService.shared.saveFavLocation(for: location)
                 isFavorite = true
@@ -138,12 +161,24 @@ extension LocationTableViewCell {
         } catch {
             delegate?.errorOccured(with: error.localizedDescription)
         }
-
-        UIView.transition(with: favButton, duration: 0.4) {
+        
+        UIView.transition(with: favButton, duration: 0.4) { [weak self] in
+            guard let self = self else { return }
             let symbolName = self.isFavorite ? "heart.fill" : "heart"
             self.favButton.setImage(UIImage(systemName: symbolName), for: .normal)
+            self.animateFavButton()
         }
         
         UIHelper.successHapticFeedback()
+    }
+    
+    private func animateFavButton() {
+        UIView.animate(withDuration: 0.1, animations: {
+            self.favButton.transform = CGAffineTransform(scaleX: 1.3, y: 1.3)
+        }, completion: { _ in
+            UIView.animate(withDuration: 0.1) {
+                self.favButton.transform = CGAffineTransform.identity
+            }
+        })
     }
 }

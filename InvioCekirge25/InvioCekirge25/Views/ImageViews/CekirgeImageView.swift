@@ -35,12 +35,12 @@ class CekirgeImageView: UIImageView {
         }
 
         currentURLString = urlString
-        let placeHolderImage = UIImage()
+        let placeholderImage = UIImage()
         let processor = DownsamplingImageProcessor(size: self.bounds.size)
 
         self.kf.setImage(
             with: url,
-            placeholder: placeHolderImage,
+            placeholder: placeholderImage,
             options: [
                 .processor(processor),
                 .scaleFactor(UIScreen.main.scale),

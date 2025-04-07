@@ -13,11 +13,13 @@ class MapCoordinator: ChildCoordinator {
     var navigationController: UINavigationController
     private var title: String?
     private var locations: [LocationModel]
+    private var isFromLocationDetailVC: Bool
     
-    init(navigationController: UINavigationController, title: String, locations: [LocationModel]) {
+    init(navigationController: UINavigationController, title: String, locations: [LocationModel], isFromLocationDetailVC: Bool = false) {
         self.navigationController = navigationController
         self.title = title
         self.locations = locations
+        self.isFromLocationDetailVC = isFromLocationDetailVC
     }
     
     func start(animated: Bool) {
@@ -26,10 +28,15 @@ class MapCoordinator: ChildCoordinator {
         mapVC.coordinator = self
         mapVC.title = title
         mapVC.locations = locations
+        mapVC.isFromDetailVC = isFromLocationDetailVC
         navigationController.pushViewController(mapVC, animated: animated)
     }
     
     func coordinatorDidFinish() {
         parent?.childDidFinish(self)
+    }
+    
+    func navigateToLocationDetail(location: LocationModel, cityName: String) {
+        parent?.navigateToLocationDetailScreen(animated: true, location: location, cityName: cityName)
     }
 }

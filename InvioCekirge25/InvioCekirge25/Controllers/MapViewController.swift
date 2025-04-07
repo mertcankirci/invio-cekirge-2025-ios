@@ -12,19 +12,25 @@ import CoreLocation
 class MapViewController: UIViewController {
     
     var locations: [LocationModel]?
-
+    var isFromDetailVC: Bool?
+    
     weak var coordinator: MapCoordinator?
     let mapView = MKMapView()
-    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: AppLayouts.shared.snapToCenterLocationListLayout())
     let alertController = UIAlertController(title: "Alert", message: "Konumunu haritada görmek ister misin?", preferredStyle: .alert)
     private let userLocationButton = UIButton()
     private var userLocation: CLLocation?
+    private let getDirectionButton = UIButton()
     
     //MARK: - Services
     private let authorizationService = AuthorizationService()
     private let locationAuthService = LocationAuthorizationService()
     private let locationService = LocationService()
     
+    lazy var collectionView: UICollectionView = {
+        let layout = snapToCenterLocationListLayout()
+        let collection = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        return collection
+    }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,11 +48,14 @@ class MapViewController: UIViewController {
     
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        coordinator?.coordinatorDidFinish()
+        
+        if self.isMovingFromParent || self.isBeingDismissed {
+            coordinator?.coordinatorDidFinish()
+        }
     }
     
     func configureUI() {
-        [mapView, collectionView, userLocationButton].forEach { component in
+        [mapView, collectionView, userLocationButton, getDirectionButton].forEach { component in
             view.addSubview(component)
         }
         
@@ -64,13 +73,26 @@ class MapViewController: UIViewController {
             userLocationButton.bottomAnchor.constraint(equalTo: collectionView.topAnchor, constant: -16),
             userLocationButton.trailingAnchor.constraint(equalTo: mapView.trailingAnchor, constant: -16),
             userLocationButton.heightAnchor.constraint(equalToConstant: 40),
-            userLocationButton.widthAnchor.constraint(equalToConstant: 40)
+            userLocationButton.widthAnchor.constraint(equalToConstant: 40),
+            
+            getDirectionButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            getDirectionButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -32),
+            getDirectionButton.heightAnchor.constraint(equalToConstant: 50),
+            getDirectionButton.widthAnchor.constraint(equalToConstant: 200)
         ])
+        
+        if isFromDetailVC == true {
+            collectionView.isHidden = true
+            getDirectionButton.isHidden = false
+        } else {
+            collectionView.isHidden = false
+            getDirectionButton.isHidden = true
+        }
     }
     
     func configureVC() {
-        view.backgroundColor = .systemGroupedBackground
-        navigationController?.navigationBar.prefersLargeTitles = false
+        view.backgroundColor = InvioColors.groupedBackground
+        navigationItem.largeTitleDisplayMode = .never
     }
     
     func configureMapView() {
@@ -82,7 +104,7 @@ class MapViewController: UIViewController {
         collectionView.bounces = false
         collectionView.backgroundColor = .clear
         collectionView.translatesAutoresizingMaskIntoConstraints = false
-
+        
         self.collectionView.delegate = self
         self.collectionView.dataSource = self
         
@@ -98,30 +120,38 @@ class MapViewController: UIViewController {
                 self.authorizationService.requestAuthorization(for: locationAuthService)
                 return
             }
-        
+            
             handleLocationAuthorization(fromUserAction: true)
         }
-
+        
         let noAction = UIAlertAction(title: "Hayır", style: .cancel) { _ in }
-
+        
         alertController.addAction(yesAction)
         alertController.addAction(noAction)
     }
     
     func configureButtons() {
         userLocationButton.translatesAutoresizingMaskIntoConstraints = false
-
-        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
-        let image = UIImage(systemName: "safari", withConfiguration: config)?.withTintColor(.accent, renderingMode: .alwaysOriginal)
-
+        
+        let image = InvioImages.compass?.withSymbolSize(22, weight: .semibold)?.withTintColor(.accent, renderingMode: .alwaysOriginal)
+        
         userLocationButton.setImage(image, for: .normal)
         userLocationButton.imageView?.contentMode = .scaleAspectFit
-
+        
         userLocationButton.layer.cornerRadius = 20
         userLocationButton.layer.masksToBounds = true
-        userLocationButton.backgroundColor = .gray.withAlphaComponent(0.5)
-
+        userLocationButton.backgroundColor = InvioColors.transparentGrayButtonBackground
         userLocationButton.addTarget(self, action: #selector(didTapLocationButton), for: .touchUpInside)
+        
+        getDirectionButton.translatesAutoresizingMaskIntoConstraints = false
+        getDirectionButton.setTitle("Yol tarifi al", for: .normal)
+        getDirectionButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
+        getDirectionButton.setTitleColor(.label, for: .normal)
+        getDirectionButton.backgroundColor = InvioColors.background
+        getDirectionButton.layer.cornerRadius = 8
+        getDirectionButton.layer.borderWidth = 2
+        getDirectionButton.layer.borderColor = UIColor.accent.cgColor
+        getDirectionButton.addTarget(self, action: #selector(didTapGetDirectionsButton), for: .touchUpInside)
     }
 }
 
@@ -131,10 +161,10 @@ extension MapViewController: MKMapViewDelegate {
         if annotation is MKUserLocation {
             return nil
         }
-
+        
         let identifier = "LocationMarker"
         var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
-
+        
         if annotationView == nil {
             annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
             annotationView?.canShowCallout = true
@@ -144,28 +174,28 @@ extension MapViewController: MKMapViewDelegate {
         
         ///If annotation is user, configure it based on the situation.
         if annotation.title == "Sen" {
-            annotationView?.markerTintColor = .systemBlue
+            annotationView?.markerTintColor = InvioColors.userMarkerTintColor
             annotationView?.glyphText = "🧍"
         }
-
+        
         return annotationView
     }
-
+    
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         guard let selectedAnnotation = view.annotation else { return }
-
+        
         for annotation in mapView.annotations {
             if let annotationView = mapView.view(for: annotation) as? MKMarkerAnnotationView,
                annotation !== selectedAnnotation {
                 DispatchQueue.main.async {
                     if annotation.title != "Sen" {
-                        annotationView.markerTintColor = .systemRed
+                        annotationView.markerTintColor = InvioColors.defaultmarkerTintColor
                         annotationView.glyphText = nil
                     }
                 }
             }
         }
-
+        
         if let selectedView = mapView.view(for: selectedAnnotation) as? MKMarkerAnnotationView {
             let name = selectedAnnotation.title
             let index = (locations?.firstIndex(where: { $0.name == name })) ?? 0 ///fallback to 0 to ensure there isn't any crashes
@@ -184,9 +214,9 @@ extension MapViewController: MKMapViewDelegate {
     func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {
         guard let annotation = mapView.annotations.first(where: { $0.title != "Sen" && $0.title == locations?.first?.name }),
               mapView.selectedAnnotations.isEmpty else { return }
-
+        
         mapView.selectAnnotation(annotation, animated: true)
-
+        
         if let annotationView = mapView.view(for: annotation) {
             self.mapView(mapView, didSelect: annotationView)
         }
@@ -203,6 +233,7 @@ extension MapViewController: UICollectionViewDelegate, UICollectionViewDataSourc
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: LocationListCollectionViewCell.reuseId, for: indexPath) as? LocationListCollectionViewCell,
               let location = locations?[indexPath.row] else { return UICollectionViewCell() }
+        cell.delegate = self
         cell.set(for: location)
         return cell
     }
@@ -219,7 +250,6 @@ extension MapViewController: UICollectionViewDelegate, UICollectionViewDataSourc
             self.mapView.selectAnnotation(annotation, animated: true)
             self.setRegionForAnnotation(for: annotation)
         }
-        
     }
 }
 
@@ -229,14 +259,14 @@ extension MapViewController {
         guard let locations = locations, locations.count > 0 else { Log.warning("No locations found on Map VC"); return }
         
         var annotations: [MKPointAnnotation] = []
-
+        
         for location in locations {
             let annotation = createAnnotation(title: location.name,
                                               lat: CGFloat(location.coordinates.lat),
                                               lon: CGFloat(location.coordinates.lng))
             annotations.append(annotation)
         }
-
+        
         mapView.addAnnotations(annotations)
         mapView.showAnnotations(annotations, animated: false)
     }
@@ -261,9 +291,9 @@ extension MapViewController {
         )
         
         let span = MKCoordinateSpan(
-               latitudeDelta: 0.01,
-               longitudeDelta: 0.01
-           )
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01
+        )
         
         let region = MKCoordinateRegion(center: center, span: span)
         mapView.setRegion(region, animated: true)
@@ -294,7 +324,7 @@ extension MapViewController {
             await MainActor.run { [weak self] in
                 guard let self = self else { return }
                 self.userLocation = result
-
+                
                 let annotation = createAnnotation(title: "Sen", lat: result.coordinate.latitude, lon: result.coordinate.longitude)
                 self.mapView.addAnnotation(annotation)
             }
@@ -317,11 +347,105 @@ extension MapViewController {
         }
     }
     
+    @objc
+    func didTapGetDirectionsButton() {
+        guard let location = self.locations?.first else { return }
+        let latitude = location.coordinates.lat
+        let longitude = location.coordinates.lng
+        
+        //app urls
+        let appleURL = "http://maps.apple.com/?daddr=\(latitude),\(longitude)"
+        let googleURL = "comgooglemaps://?daddr=\(latitude),\(longitude)&directionsmode=driving"
+        let yandexURL = "yandexnavi://build_route_on_map?lat_to=\(latitude)&lon_to=\(longitude)"
+
+        
+        let googleItem = ("Google Maps", URL(string: googleURL)!)
+        let yandexItem = ("Yandex Navi", URL(string: yandexURL)!)
+        
+        var installedNavigationApps = [("Apple Maps", URL(string:appleURL)!)]
+        
+        if UIApplication.shared.canOpenURL(googleItem.1) {
+            installedNavigationApps.append(googleItem)
+        }
+        
+        if UIApplication.shared.canOpenURL(yandexItem.1) {
+            installedNavigationApps.append(yandexItem)
+        }
+        
+        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        for app in installedNavigationApps {
+            let button = UIAlertAction(title: app.0, style: .default, handler: { _ in
+                UIApplication.shared.open(app.1, options: [:], completionHandler: nil)
+            })
+            alert.addAction(button)
+        }
+        let cancel = UIAlertAction(title: "Vazgeç", style: .cancel, handler: nil)
+        alert.addAction(cancel)
+        present(alert, animated: true)
+    }
+    
+    private func centerCurrentCell() {
+        let centerPoint = CGPoint(x: collectionView.bounds.midX + collectionView.contentOffset.x,
+                                  y: collectionView.bounds.midY + collectionView.contentOffset.y)
+        
+        if let indexPath = collectionView.indexPathForItem(at: centerPoint),
+           let location = locations?[indexPath.item],
+           let annotation = mapView.annotations.first(where: { $0.title == location.name }) {
+            mapView.selectAnnotation(annotation, animated: true)
+            setRegionForAnnotation(for: annotation)
+        }
+    }
+    
     func openSettings() {
         if let settingsURL = URL(string: UIApplication.openSettingsURLString),
            UIApplication.shared.canOpenURL(settingsURL) {
             UIApplication.shared.open(settingsURL)
         }
+    }
+    
+    //Collection view layout (select the location based on the scroll on collection view)
+    private func snapToCenterLocationListLayout() -> UICollectionViewCompositionalLayout {
+        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1.0))
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+
+        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.9), heightDimension: .absolute(120))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+
+        let section = NSCollectionLayoutSection(group: group)
+        section.orthogonalScrollingBehavior = .groupPagingCentered
+        section.interGroupSpacing = 16
+
+        section.visibleItemsInvalidationHandler = { [weak self] visibleItems, offset, environment in
+            guard let self = self else { return }
+
+            let centerX = offset.x + environment.container.contentSize.width / 2
+
+            let sorted = visibleItems.sorted {
+                abs($0.frame.midX - centerX) < abs($1.frame.midX - centerX)
+            }
+
+            if let centerItem = sorted.first {
+                let indexPath = centerItem.indexPath
+
+                DispatchQueue.main.async {
+                    if let location = self.locations?[indexPath.item],
+                       let annotation = self.mapView.annotations.first(where: { $0.title == location.name }) {
+                        self.mapView.selectAnnotation(annotation, animated: true)
+                        self.setRegionForAnnotation(for: annotation)
+                    }
+                }
+            }
+        }
+
+        return UICollectionViewCompositionalLayout(section: section)
+    }
+}
+
+//cell delegates
+extension MapViewController: LocationListCollectionViewCellDelegate {
+    func didTapDetailButton(location: LocationModel) {
+        guard let cityName = self.title else { return }
+        coordinator?.navigateToLocationDetail(location: location, cityName: cityName)
     }
 }
 

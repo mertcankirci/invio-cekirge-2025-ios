@@ -39,6 +39,6 @@ extension LocationDetailCoordinator {
     func navigateToMapDetail(_ location: LocationModel) {
         let title = location.name
         let locationArray: [LocationModel] = [location]
-        parent?.navigateToMapDetailScreen(animated: true, title: title, locations: locationArray)
+        parent?.navigateToMapDetailScreen(animated: true, title: title, locations: locationArray, isFromLocationDetailVC: true)
     }
 }

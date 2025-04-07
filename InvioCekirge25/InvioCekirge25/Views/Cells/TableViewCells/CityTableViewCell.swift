@@ -20,9 +20,7 @@ class CityTableViewCell: UITableViewCell {
     let navigationButton = UIButton()
     let includesLocationImage = UIImageView()
     let includesLocationContainer = UIView()
-    let cityImageView = CekirgeGradientImageView(frame: .zero)
-    
-    private let locationImageConfiguration = UIImage.SymbolConfiguration(pointSize: 12, weight: .bold)
+    let cityImageView = CekirgeGradientImageView(frame: .zero, needsAlpha: true)
     
     weak var delegate: CityTableViewCellDelegate?
     private var city: CityModel?
@@ -50,21 +48,21 @@ class CityTableViewCell: UITableViewCell {
     func configureLabels() {
         cityLabel.translatesAutoresizingMaskIntoConstraints = false
         cityLabel.font = .systemFont(ofSize: 18, weight: .bold)
-        cityLabel.textColor = .white
+        cityLabel.textColor = InvioColors.titleLabelColor
         
         locationLabel.translatesAutoresizingMaskIntoConstraints = false
         locationLabel.font = .systemFont(ofSize: 12, weight: .light)
-        locationLabel.textColor = .white.withAlphaComponent(0.7)
+        locationLabel.textColor = InvioColors.secondaryLabelColor
     }
     
     func configureButton() {
         navigationButton.translatesAutoresizingMaskIntoConstraints = false
-        navigationButton.setImage(UIImage(systemName: "mappin"), for: .normal)
+        navigationButton.setImage(InvioImages.pin?.withSymbolSize(22), for: .normal)
         navigationButton.imageView?.contentMode = .scaleAspectFit
         
-        navigationButton.layer.cornerRadius = 16
+        navigationButton.layer.cornerRadius = 22
         navigationButton.layer.masksToBounds = true
-        navigationButton.backgroundColor = .gray.withAlphaComponent(0.5)
+        navigationButton.backgroundColor = InvioColors.transparentGrayButtonBackground
         
         navigationButton.addTarget(self, action: #selector(didTapNavigationButton), for: .touchUpInside)
     }
@@ -77,7 +75,7 @@ class CityTableViewCell: UITableViewCell {
         includesLocationContainer.translatesAutoresizingMaskIntoConstraints = false
         includesLocationContainer.layer.cornerRadius = 16
         includesLocationContainer.layer.masksToBounds = true
-        includesLocationContainer.backgroundColor = .gray.withAlphaComponent(0.5)
+        includesLocationContainer.backgroundColor = InvioColors.transparentGrayButtonBackground
         
         includesLocationImage.translatesAutoresizingMaskIntoConstraints = false
         includesLocationImage.contentMode = .scaleAspectFit
@@ -119,8 +117,8 @@ class CityTableViewCell: UITableViewCell {
             
             navigationButton.trailingAnchor.constraint(equalTo: cityImageView.trailingAnchor, constant: -16),
             navigationButton.centerYAnchor.constraint(equalTo: cityImageView.centerYAnchor),
-            navigationButton.widthAnchor.constraint(equalToConstant: 32),
-            navigationButton.heightAnchor.constraint(equalToConstant: 32)
+            navigationButton.widthAnchor.constraint(equalToConstant: 44),
+            navigationButton.heightAnchor.constraint(equalToConstant: 44)
         ])
     }
     
@@ -133,14 +131,20 @@ class CityTableViewCell: UITableViewCell {
         if city.locations.count <= 0 {
             includesLocationImage.isHidden = true
             includesLocationContainer.isHidden = true
+            navigationButton.isHidden = true
         } else {
-            includesLocationImage.image = UIImage(systemName: "plus", withConfiguration: locationImageConfiguration)
+            includesLocationImage.isHidden = false
+            includesLocationContainer.isHidden = false
+            navigationButton.isHidden = false
+            
+            let symbolName = city.isExpanded ? "minus" : "plus"
+            includesLocationImage.image = UIImage(systemName: symbolName)?.withSymbolSize(12, weight: .bold)
         }
     }
     
     func onSelectPerform(isExpanded: Bool) {
         let symbolName = isExpanded ? "minus" : "plus"
-        let newImage = UIImage(systemName: symbolName, withConfiguration: locationImageConfiguration)
+        let newImage = UIImage(systemName: symbolName)?.withSymbolSize(12, weight: .bold)
         
         UIView.transition(with: includesLocationImage,
                           duration: 0.4,

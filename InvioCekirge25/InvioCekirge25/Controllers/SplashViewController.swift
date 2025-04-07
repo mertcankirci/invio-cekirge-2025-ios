@@ -22,7 +22,7 @@ class SplashViewController: UIViewController {
     }
     
     func configureVC() {
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = InvioColors.groupedBackground
     }
     
     func configureImageView() {

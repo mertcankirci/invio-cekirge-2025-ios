@@ -11,6 +11,13 @@ class CekirgeGradientImageView: CekirgeImageView {
 
     private let gradientView = UIView()
     private let gradientLayer = CAGradientLayer()
+    private var needsAlpha: Bool = false ///in dark mode city table view cells aren't visible. We'll modify their gradient color this way.
+    
+    init(frame: CGRect, needsAlpha: Bool = false) {
+        self.needsAlpha = needsAlpha
+        super.init(frame: frame)
+        setupGradientOnce()
+    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -27,7 +34,7 @@ class CekirgeGradientImageView: CekirgeImageView {
         gradientView.isUserInteractionEnabled = false
 
         gradientLayer.colors = [
-            UIColor.black.cgColor,
+            UIColor.black.withAlphaComponent(needsAlpha ? 0.8 : 1.0).cgColor,
             UIColor.clear.cgColor
         ]
         gradientLayer.locations = [0.0, 1.0]
@@ -37,7 +44,7 @@ class CekirgeGradientImageView: CekirgeImageView {
 
         gradientView.layer.addSublayer(gradientLayer)
         addSubview(gradientView)
-        gradientView.isHidden = true
+        gradientView.isHidden = false
     }
 
     override func layoutSubviews() {

@@ -23,5 +23,11 @@
 	<array>
 		<string>location</string>
 	</array>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>googlechromes</string>
+        <string>comgooglemaps</string>
+        <string>yandexnavi</string>
+    </array>
 </dict>
 </plist>

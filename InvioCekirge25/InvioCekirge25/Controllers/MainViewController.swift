@@ -29,7 +29,7 @@ class MainViewController: UIViewController {
     }
     
     func configureVC() {
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = InvioColors.groupedBackground
         navigationController?.navigationBar.prefersLargeTitles = true
         title = "Invio Çekirge 2025"
         
@@ -44,9 +44,8 @@ class MainViewController: UIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.backgroundColor = .systemGroupedBackground
-
-        tableView.backgroundView?.backgroundColor = .systemGroupedBackground
+        tableView.backgroundColor = InvioColors.groupedBackground
+        tableView.backgroundView?.backgroundColor = InvioColors.groupedBackground
         
         tableView.estimatedRowHeight = 100
         tableView.rowHeight = UITableView.automaticDimension
@@ -100,6 +99,20 @@ extension MainViewController {
             } catch {
                 self.fetching = false
                 presentAlert(errorMessage: error.localizedDescription)
+            }
+        }
+    }
+    
+    private func updateFavoriteStatus(location: LocationModel, isFavorite: Bool) {
+        guard let cities = cities else { return }
+        for (sectionIndex, city) in cities.enumerated() {
+            if let locationIndex = city.locations.firstIndex(where: { $0.id == location.id }) {
+                let indexPath = IndexPath(row: locationIndex + 1, section: sectionIndex)
+
+                if let cell = tableView.cellForRow(at: indexPath) as? LocationTableViewCell {
+                    cell.set(location: location, isFavorite: isFavorite)
+                }
+                break
             }
         }
     }
@@ -216,8 +229,6 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
             coordinator?.navigateToLocationDetailScreen(animated: true, location: location, cityName: city.city)
         }
     }
-
-
     
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         guard let cities = cities else { return }
@@ -236,7 +247,7 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
     }
 }
 
-///Cell extensions
+///Cell / view controller extensions
 extension MainViewController: CityTableViewCellDelegate {
     func didTapNavigationButton(from city: CityModel) {
         coordinator?.navigateToMapDetailScreen(animated: true, title: city.city, locations: city.locations)
@@ -244,26 +255,22 @@ extension MainViewController: CityTableViewCellDelegate {
 }
 
 extension MainViewController: LocationTableViewCellDelegate {
+    func removedFavorite(_ fav: LocationModel) {}
+    
     func errorOccured(with errorMessage: String) {
         self.presentAlert(errorMessage: errorMessage)
     }
 }
 
 extension MainViewController: LocationDetailVCDelegate {
-    
     func didUpdateFavoriteStatus(for location: LocationModel, isFavorite: Bool) {
-        guard let cities = cities else { return }
+        updateFavoriteStatus(location: location, isFavorite: isFavorite)
 
-        for (sectionIndex, city) in cities.enumerated() {
-            if let locationIndex = city.locations.firstIndex(where: { $0.id == location.id }) {
-                let indexPath = IndexPath(row: locationIndex + 1, section: sectionIndex)
-
-                if let cell = tableView.cellForRow(at: indexPath) as? LocationTableViewCell {
-                    cell.set(location: location, isFavorite: isFavorite)
-                }
-                break
-            }
-        }
     }
 }
 
+extension MainViewController: FavouritesViewControllerDelegate {
+    func didDeselectLocation(_ location: LocationModel) {
+        updateFavoriteStatus(location: location, isFavorite: false)
+    }
+}

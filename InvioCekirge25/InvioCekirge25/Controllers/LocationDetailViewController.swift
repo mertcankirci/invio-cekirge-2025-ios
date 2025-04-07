@@ -28,70 +28,60 @@ class LocationDetailViewController: UIViewController {
     }
     
     private let locationImage = CekirgeGradientImageView(frame: .zero)
-    private let descriptionContainer = UIView()
+    private let descriptionContainer = UIScrollView()
     private let topGradientContainer = UIView()
     private let locationNameLabel = UILabel()
     private let descriptionLabel = UILabel()
-    private let viewOnMapContainer = UIView()
-    private let viewOnMapButton = UIButton()
-    private let viewOnMapCallerLabel = UILabel()
-    private let viewOnMapActionLabel = UILabel()
-    private let viewOnMapImage = UIImageView()
-    private let viewOnMapImageContainer = UIView() /// Container to hold viewOnMapImage
+    private var topBlurHeightConstraint: NSLayoutConstraint?
+    private let viewOnMapView = ViewOnMapView(frame: .zero, imageName: "map", actionDescription: "Haritada görüntüleyebilirsiniz.", callerDescription: "Bu lokasyonu")
 
     let cityNameLabel = UILabel() ///We're setting this from coordinator.
     
     override func viewDidLoad() {
         super.viewDidLoad()
         self.isFavorite = isFavoriteLocation()
+        configureViewOnMapView()
         configureViewController()
         configureFavoriteIcon()
         configureContainers()
         configureLabels()
-        configureButtons()
-        configureImages()
         
         configureUI()
     }
     
-    func configureImages() {
-        viewOnMapImage.translatesAutoresizingMaskIntoConstraints = false
-        viewOnMapImage.image = UIImage(systemName: "map")
-        viewOnMapImage.tintColor = .accent
-        viewOnMapImage.contentMode = .scaleAspectFit
-        viewOnMapImage.isUserInteractionEnabled = false
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        adjustTopBlurViewHeight()
     }
     
-    func configureButtons() {
-        viewOnMapButton.translatesAutoresizingMaskIntoConstraints = false
-        viewOnMapButton.setTitle("Harita", for: .normal)
-        viewOnMapButton.layer.cornerRadius = 15
-        viewOnMapButton.layer.masksToBounds = true
-        viewOnMapButton.backgroundColor = .white.withAlphaComponent(0.3)
-        viewOnMapButton.titleLabel?.textColor = .white
-        viewOnMapButton.titleLabel?.font = .systemFont(ofSize: 14, weight: .bold)
-        viewOnMapButton.addTarget(self, action: #selector(viewOnMapButtonTapped), for: .touchUpInside)
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationItem.largeTitleDisplayMode = .always
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        
+        if self.isMovingFromParent || self.isBeingDismissed {
+            coordinator?.coordinatorDidFinish()
+        }
+    }
+    
+    func configureViewOnMapView() {
+        viewOnMapView.delegate = self
     }
     
     func configureLabels() {
-        [locationNameLabel, descriptionLabel, cityNameLabel, viewOnMapCallerLabel, viewOnMapActionLabel].forEach({ $0.translatesAutoresizingMaskIntoConstraints = false })
+        [locationNameLabel, descriptionLabel, cityNameLabel].forEach({ $0.translatesAutoresizingMaskIntoConstraints = false })
         
-        locationNameLabel.textColor = .white
+        locationNameLabel.textColor = InvioColors.titleLabelColor
         locationNameLabel.font = .systemFont(ofSize: 24, weight: .bold)
         
-        cityNameLabel.textColor = .white.withAlphaComponent(0.7)
+        cityNameLabel.textColor = InvioColors.secondaryLabelColor
         cityNameLabel.font = .systemFont(ofSize: 16, weight: .light)
         
         descriptionLabel.textColor = .label
         descriptionLabel.numberOfLines = 0
-        
-        viewOnMapCallerLabel.text = "Bu lokasyonu"
-        viewOnMapCallerLabel.textColor = .white
-        viewOnMapCallerLabel.font = .systemFont(ofSize: 14, weight: .regular)
-        
-        viewOnMapActionLabel.text = "Haritada görüntüleyebilirsin."
-        viewOnMapActionLabel.textColor = .white.withAlphaComponent(0.7)
-        viewOnMapActionLabel.font = .systemFont(ofSize: 12, weight: .light)
     }
     
     func configureContainers() {
@@ -99,16 +89,10 @@ class LocationDetailViewController: UIViewController {
         topGradientContainer.backgroundColor = .black
         
         descriptionContainer.translatesAutoresizingMaskIntoConstraints = false
-        descriptionContainer.backgroundColor = .secondarySystemGroupedBackground
+        descriptionContainer.backgroundColor = InvioColors.secondaryGroupedBackground
+        descriptionContainer.showsVerticalScrollIndicator = false
         descriptionContainer.layer.cornerRadius = 8
         descriptionContainer.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
-        
-        viewOnMapContainer.translatesAutoresizingMaskIntoConstraints = false
-        
-        viewOnMapImageContainer.translatesAutoresizingMaskIntoConstraints = false
-        viewOnMapImageContainer.layer.cornerRadius = 8
-        viewOnMapImageContainer.layer.masksToBounds = true
-        viewOnMapImageContainer.backgroundColor = .gray.withAlphaComponent(0.8)
     }
     
     func configureFavoriteIcon() {
@@ -116,13 +100,13 @@ class LocationDetailViewController: UIViewController {
     }
     
     func configureViewController() {
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = InvioColors.groupedBackground
         self.navigationItem.titleView = UIView()
     }
     
     func configureUI() {
         
-        [locationImage, topGradientContainer, descriptionContainer, locationNameLabel, cityNameLabel, descriptionLabel, viewOnMapContainer, viewOnMapImageContainer, viewOnMapActionLabel, viewOnMapCallerLabel, viewOnMapButton, viewOnMapImage].forEach { component in
+        [locationImage, topGradientContainer, descriptionContainer, locationNameLabel, cityNameLabel, descriptionLabel, viewOnMapView].forEach { component in
             view.addSubview(component)
         }
         
@@ -152,37 +136,15 @@ class LocationDetailViewController: UIViewController {
             cityNameLabel.bottomAnchor.constraint(equalTo: locationImage.bottomAnchor, constant: -2),
             cityNameLabel.leadingAnchor.constraint(equalTo: locationNameLabel.leadingAnchor),
             
-            viewOnMapContainer.bottomAnchor.constraint(equalTo: topGradientContainer.bottomAnchor),
-            viewOnMapContainer.leadingAnchor.constraint(equalTo: topGradientContainer.leadingAnchor),
-            viewOnMapContainer.trailingAnchor.constraint(equalTo: topGradientContainer.trailingAnchor),
-            viewOnMapContainer.topAnchor.constraint(equalTo: locationNameLabel.bottomAnchor, constant: 8),
+            viewOnMapView.bottomAnchor.constraint(equalTo: topGradientContainer.bottomAnchor),
+            viewOnMapView.leadingAnchor.constraint(equalTo: topGradientContainer.leadingAnchor),
+            viewOnMapView.trailingAnchor.constraint(equalTo: topGradientContainer.trailingAnchor),
+            viewOnMapView.topAnchor.constraint(equalTo: locationNameLabel.bottomAnchor, constant: 8),
             
-            viewOnMapImageContainer.leadingAnchor.constraint(equalTo: viewOnMapContainer.leadingAnchor, constant: 16),
-            viewOnMapImageContainer.centerYAnchor.constraint(equalTo: viewOnMapContainer.centerYAnchor),
-            viewOnMapImageContainer.heightAnchor.constraint(equalToConstant: 44),
-            viewOnMapImageContainer.widthAnchor.constraint(equalToConstant: 44),
-            
-            viewOnMapImage.centerXAnchor.constraint(equalTo: viewOnMapImageContainer.centerXAnchor),
-            viewOnMapImage.centerYAnchor.constraint(equalTo: viewOnMapImageContainer.centerYAnchor),
-            viewOnMapImage.widthAnchor.constraint(equalToConstant: 32),
-            viewOnMapImage.heightAnchor.constraint(equalToConstant: 32),
-            
-            viewOnMapCallerLabel.bottomAnchor.constraint(equalTo: viewOnMapImageContainer.centerYAnchor),
-            viewOnMapCallerLabel.leadingAnchor.constraint(equalTo: viewOnMapImageContainer.trailingAnchor, constant: 8),
-            
-            viewOnMapActionLabel.topAnchor.constraint(equalTo: viewOnMapImageContainer.centerYAnchor),
-            viewOnMapActionLabel.leadingAnchor.constraint(equalTo: viewOnMapCallerLabel.leadingAnchor),
-            
-            viewOnMapButton.trailingAnchor.constraint(equalTo: viewOnMapContainer.trailingAnchor, constant: -16),
-            viewOnMapButton.centerYAnchor.constraint(equalTo: viewOnMapContainer.centerYAnchor),
-            viewOnMapButton.widthAnchor.constraint(equalToConstant: 64),
-            viewOnMapButton.heightAnchor.constraint(equalToConstant: 32),
         ])
         
-        addBlurEffectToViewOnMapContainer()
         addBlurEffectToTop()
     }
-
 }
 
 //custom functions
@@ -198,36 +160,23 @@ extension LocationDetailViewController {
         )
     }
     
-    private func addBlurEffectToViewOnMapContainer() {
-        let blurEffect = UIBlurEffect(style: .regular)
-        let blurView = UIVisualEffectView(effect: blurEffect)
-        blurView.translatesAutoresizingMaskIntoConstraints = false
-        blurView.clipsToBounds = true
-        
-        viewOnMapContainer.addSubview(blurView)
-        
-        NSLayoutConstraint.activate([
-            blurView.topAnchor.constraint(equalTo: viewOnMapContainer.topAnchor),
-            blurView.leadingAnchor.constraint(equalTo: viewOnMapContainer.leadingAnchor),
-            blurView.trailingAnchor.constraint(equalTo: viewOnMapContainer.trailingAnchor),
-            blurView.bottomAnchor.constraint(equalTo: viewOnMapContainer.bottomAnchor)
-        ])
-    }
-    
     private func addBlurEffectToTop() {
-        let topBlurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+        let topBlurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterialDark))
         
         topBlurView.translatesAutoresizingMaskIntoConstraints = false
         topBlurView.layer.cornerRadius = 0
         topBlurView.clipsToBounds = true
-
+        
+        let topHeight = self.navigationController?.navigationBar.frame.size.height
         view.addSubview(topBlurView)
+        
+        topBlurHeightConstraint = topBlurView.heightAnchor.constraint(equalToConstant: topHeight ?? self.topbarHeight - 44)
 
         NSLayoutConstraint.activate([
             topBlurView.topAnchor.constraint(equalTo: view.topAnchor),
             topBlurView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             topBlurView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            topBlurView.heightAnchor.constraint(equalToConstant: self.topbarHeight)
+            topBlurHeightConstraint!
         ])
     }
     
@@ -275,6 +224,12 @@ extension LocationDetailViewController {
         }
     }
     
+    //Ekranin en ustundeki view'in height constraintini ayarlar
+    private func adjustTopBlurViewHeight() {
+        let topHeight = self.navigationController?.navigationBar.frame.size.height
+        topBlurHeightConstraint?.constant = topHeight ?? self.topbarHeight
+    }
+    
     @objc
     func favButtonTapped() {
         handleFavoritePersistence()
@@ -285,8 +240,11 @@ extension LocationDetailViewController {
             delegate?.didUpdateFavoriteStatus(for: location, isFavorite: isFavorite)
         }
     }
-    
-    @objc func viewOnMapButtonTapped() {
+}
+
+//delegate extensions
+extension LocationDetailViewController: ViewOnMapViewDelegate {
+    func viewOnMapButtonTapped() {
         if let location = location {
             coordinator?.navigateToMapDetail(location)
         }
