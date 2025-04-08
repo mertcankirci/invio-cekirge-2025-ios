@@ -10,8 +10,9 @@ import CoreLocation
 class LocationService: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var locationHandler: ((Result<CLLocation, Error>) -> Void)?
-    
     private var currentTask: Task<CLLocation, Error>?
+    private let cache = NSCache<AnyObject, AnyObject>()
+    private let period: Float = 30.0 //Time period for cache to return value.
     
     override init() {
         super.init()
@@ -19,6 +20,7 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     func requestLocation() async throws -> CLLocation {
+        
         if let currentTask = currentTask {
             return try await currentTask.value
         }
@@ -42,6 +44,30 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         self.currentTask = task
         return try await task.value
     }
+    
+    func requestSmartLocation(onImmediateLocation: ((CLLocation) -> Void)?, onUpdatedLocation: ((Result<CLLocation, Error>) -> Void)?) {
+        if let cachedLocation = self.getCachedLocation() {
+            onImmediateLocation?(cachedLocation)
+        }
+        
+        Task {
+            do {
+                let updatedLocation = try await requestLocation()
+                
+                if let cachedLocation = self.getCachedLocation() {
+                    let distance = cachedLocation.distance(from: updatedLocation)
+                    
+                    if distance > 300 {
+                        onUpdatedLocation?(.success(updatedLocation))
+                    }
+                } else {
+                    onUpdatedLocation?(.success(updatedLocation))
+                }
+            } catch {
+                onUpdatedLocation?(.failure(error))
+            }
+        }
+    }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.last {
@@ -55,6 +81,10 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         locationHandler?(.failure(error))
         locationHandler = nil
         Log.error("Failed to find user's location.")
+    }
+    
+    func getCachedLocation() -> CLLocation? {
+        return manager.location
     }
 }
 

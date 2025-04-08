@@ -25,7 +25,6 @@ class FavouritesViewController: UIViewController {
         super.viewDidLoad()
         configureViewController()
         configureTableView()
-        configureEmptyStateView()
         configureComponentVisibilty()
         
         configureUI()
@@ -54,10 +53,6 @@ class FavouritesViewController: UIViewController {
 
         self.emptyStateView.isUserInteractionEnabled = !hasFavorites
         self.tableView.isUserInteractionEnabled = hasFavorites
-    }
-    
-    func configureEmptyStateView() {
-        emptyStateView.isHidden = true
     }
     
     func configureTableView() {

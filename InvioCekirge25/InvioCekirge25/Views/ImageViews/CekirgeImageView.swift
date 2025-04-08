@@ -30,12 +30,13 @@ class CekirgeImageView: UIImageView {
     func downloadImage(from urlString: String?, completion: ((Bool) -> Void)? = nil) {
         guard let urlString = urlString, let url = URL(string: urlString) else {
             Log.warning("Couldn't download image. Something wrong with the url.")
+            self.image = nil
             completion?(false)
             return
         }
 
         currentURLString = urlString
-        let placeholderImage = UIImage()
+        let placeholderImage = UIImage().withTintColor(.systemFill, renderingMode: .alwaysTemplate)
         let processor = DownsamplingImageProcessor(size: self.bounds.size)
 
         self.kf.setImage(
@@ -60,6 +61,7 @@ class CekirgeImageView: UIImageView {
             case .failure:
                 Log.error("Error in downloading image.")
                 DispatchQueue.main.async {
+                    self.image = nil
                     completion?(false)
                 }
             }

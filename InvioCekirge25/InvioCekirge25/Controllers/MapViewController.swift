@@ -32,6 +32,8 @@ class MapViewController: UIViewController {
         return collection
     }()
     
+    private var collectionViewWillScroll: Bool = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         configureVC()
@@ -44,6 +46,15 @@ class MapViewController: UIViewController {
         addPin()
         
         handleLocationAuthorization()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        let authStatus = locationAuthService.getAuthorizationStatus()
+        
+        if authStatus == .authorizedAlways || authStatus == .authorizedWhenInUse {
+            handleUserLocation()
+        }
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -92,6 +103,7 @@ class MapViewController: UIViewController {
     
     func configureVC() {
         view.backgroundColor = InvioColors.groupedBackground
+        ///This is for navigation bar + status bar height. We'll need to adjust topBlurView's height anchor based on this properties in detailLocationVC.
         navigationItem.largeTitleDisplayMode = .never
     }
     
@@ -183,6 +195,7 @@ extension MapViewController: MKMapViewDelegate {
     
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         guard let selectedAnnotation = view.annotation else { return }
+        collectionViewWillScroll = true
         
         for annotation in mapView.annotations {
             if let annotationView = mapView.view(for: annotation) as? MKMarkerAnnotationView,
@@ -200,13 +213,13 @@ extension MapViewController: MKMapViewDelegate {
             let name = selectedAnnotation.title
             let index = (locations?.firstIndex(where: { $0.name == name })) ?? 0 ///fallback to 0 to ensure there isn't any crashes
             let indexPath = IndexPath(row: index, section: 0)
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                
+            DispatchQueue.main.async {
                 selectedView.markerTintColor = .accent
                 selectedView.glyphText = "★"
-                
-                self.collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true) ///scroll to collection view item when annotation changes
+            }
+            collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true) ///scroll to collection view item when annotation changes
+            DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.collectionViewWillScroll = false
             }
         }
     }
@@ -236,20 +249,6 @@ extension MapViewController: UICollectionViewDelegate, UICollectionViewDataSourc
         cell.delegate = self
         cell.set(for: location)
         return cell
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard let location = locations?[indexPath.item],
-              let annotation = mapView.annotations.first(where: { $0.title == location.name }) else {
-            Log.warning("Couldn't find location on select")
-            return
-        }
-        
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.mapView.selectAnnotation(annotation, animated: true)
-            self.setRegionForAnnotation(for: annotation)
-        }
     }
 }
 
@@ -320,14 +319,40 @@ extension MapViewController {
     
     func handleUserLocation() {
         Task {
-            let result = try await locationService.requestLocation()
-            await MainActor.run { [weak self] in
+            locationService.requestSmartLocation { [weak self] cachedLocation in
                 guard let self = self else { return }
-                self.userLocation = result
                 
-                let annotation = createAnnotation(title: "Sen", lat: result.coordinate.latitude, lon: result.coordinate.longitude)
-                self.mapView.addAnnotation(annotation)
+                self.userLocation = cachedLocation
+                self.showUserAnnotation(for: cachedLocation)
+                
+            } onUpdatedLocation: { [weak self] result in
+                
+                guard let self = self else { return }
+                
+                switch result {
+                case .success(let location):
+                    self.userLocation = location
+                    self.showUserAnnotation(for: location)
+                case .failure(let error):
+                    self.presentAlert(errorMessage: error.localizedDescription)
+                }
+                
             }
+        }
+    }
+    
+    private func showUserAnnotation(for location: CLLocation) {
+        let lat = location.coordinate.latitude
+        let lon = location.coordinate.longitude
+        let annotationToAdd = createAnnotation(title: "Sen", lat: lat, lon: lon)
+        let annotationToRemove = mapView.annotations.first(where: { $0.title == "Sen" })
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let removed = annotationToRemove {
+                self.mapView.removeAnnotation(removed)
+            }
+            self.mapView.addAnnotation(annotationToAdd)
         }
     }
     
@@ -336,10 +361,12 @@ extension MapViewController {
         if let userLocation = userLocation {
             let lat = userLocation.coordinate.latitude
             let lon = userLocation.coordinate.longitude
+            let annotation = createAnnotation(title: "Sen", lat: lat, lon: lon)
             let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             let region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lon), span: span)
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
+                self.mapView.addAnnotation(annotation)
                 self.mapView.setRegion(region, animated: true)
             }
         } else {
@@ -426,18 +453,23 @@ extension MapViewController {
 
             if let centerItem = sorted.first {
                 let indexPath = centerItem.indexPath
-
-                DispatchQueue.main.async {
-                    if let location = self.locations?[indexPath.item],
-                       let annotation = self.mapView.annotations.first(where: { $0.title == location.name }) {
-                        self.mapView.selectAnnotation(annotation, animated: true)
-                        self.setRegionForAnnotation(for: annotation)
-                    }
-                }
+                selectVisibleCell(for: indexPath)
             }
         }
 
         return UICollectionViewCompositionalLayout(section: section)
+    }
+    
+    private func selectVisibleCell(for indexPath: IndexPath) {
+        if !collectionViewWillScroll {
+            DispatchQueue.main.async {
+                if let location = self.locations?[indexPath.item],
+                   let annotation = self.mapView.annotations.first(where: { $0.title == location.name }) {
+                    self.mapView.selectAnnotation(annotation, animated: true)
+                    self.setRegionForAnnotation(for: annotation)
+                }
+            }
+        }
     }
 }
 

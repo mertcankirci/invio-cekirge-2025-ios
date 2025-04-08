@@ -49,7 +49,7 @@ class LocationListCollectionViewCell: UICollectionViewCell {
             locationImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
             
             locationLabel.leadingAnchor.constraint(equalTo: locationImageView.leadingAnchor, constant: 16),
-            locationLabel.centerYAnchor.constraint(equalTo: locationImageView.centerYAnchor),
+            locationLabel.bottomAnchor.constraint(equalTo: locationImageView.bottomAnchor, constant: -16),
             
             detailButton.centerYAnchor.constraint(equalTo: locationImageView.centerYAnchor),
             detailButton.trailingAnchor.constraint(equalTo: locationImageView.trailingAnchor, constant: -16),

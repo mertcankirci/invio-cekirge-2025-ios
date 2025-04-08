@@ -54,6 +54,11 @@ class LocationDetailViewController: UIViewController {
         adjustTopBlurViewHeight()
     }
     
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        adjustTopBlurViewHeight()
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationItem.largeTitleDisplayMode = .always
@@ -114,7 +119,7 @@ class LocationDetailViewController: UIViewController {
             locationImage.topAnchor.constraint(equalTo: view.topAnchor),
             locationImage.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             locationImage.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            locationImage.heightAnchor.constraint(equalToConstant: view.bounds.height * 0.6),
+            locationImage.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.45),
             
             topGradientContainer.topAnchor.constraint(equalTo: locationImage.bottomAnchor),
             topGradientContainer.leadingAnchor.constraint(equalTo: locationImage.leadingAnchor),
@@ -130,10 +135,10 @@ class LocationDetailViewController: UIViewController {
             descriptionLabel.leadingAnchor.constraint(equalTo: descriptionContainer.leadingAnchor, constant: 16),
             descriptionLabel.trailingAnchor.constraint(equalTo: descriptionContainer.trailingAnchor, constant: -16),
             
-            locationNameLabel.topAnchor.constraint(equalTo: locationImage.bottomAnchor, constant: 2),
+            locationNameLabel.topAnchor.constraint(equalTo: topGradientContainer.topAnchor),
             locationNameLabel.leadingAnchor.constraint(equalTo: locationImage.leadingAnchor, constant: 16),
             
-            cityNameLabel.bottomAnchor.constraint(equalTo: locationImage.bottomAnchor, constant: -2),
+            cityNameLabel.bottomAnchor.constraint(equalTo: locationImage.bottomAnchor),
             cityNameLabel.leadingAnchor.constraint(equalTo: locationNameLabel.leadingAnchor),
             
             viewOnMapView.bottomAnchor.constraint(equalTo: topGradientContainer.bottomAnchor),
