@@ -45,14 +45,9 @@ enum NetworkError: Error {
             return .unknownStatus(code: statusCode)
         }
     }
-
 }
 
 extension NetworkError: CustomNSError {
-    static var errorDomain: String {
-        return "com.yourapp.network"
-    }
-
     var errorCode: Int {
         switch self {
         case .success: return 200

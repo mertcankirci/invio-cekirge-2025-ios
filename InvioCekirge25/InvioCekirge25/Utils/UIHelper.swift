@@ -12,4 +12,15 @@ enum UIHelper {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
     }
+    
+    static func calculateDistanceLabelText(distance: Double) -> String {
+        var labelText = String()
+        let isMeter = distance < 1000
+        let kilometer = distance / 1000
+        let formattedDistance = isMeter ? distance : kilometer ///turn distance to kilometers if it's larger than 1000
+        let type = isMeter ? " metre" : " kilometre"
+        labelText = String(format: "%.2f", formattedDistance) + type
+        
+        return labelText + " uzaklıkta"
+    }
 }

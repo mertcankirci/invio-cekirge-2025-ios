@@ -16,6 +16,7 @@ class LocationListCollectionViewCell: UICollectionViewCell {
     
     let locationImageView = CekirgeGradientImageView(frame: .zero)
     let locationLabel = UILabel()
+    let distanceLabel = UILabel()
     let detailButton = UIButton()
     
     weak var delegate: LocationListCollectionViewCellDelegate?
@@ -24,11 +25,12 @@ class LocationListCollectionViewCell: UICollectionViewCell {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
+        configureCell()
         configureLabel()
         configureImageView()
         configureButton()
         
-        configureCell()
+        configureUI()
     }
     
     required init?(coder: NSCoder) {
@@ -37,25 +39,6 @@ class LocationListCollectionViewCell: UICollectionViewCell {
     
     func configureCell() {
         contentView.backgroundColor = .clear
-        
-        contentView.addSubview(locationImageView)
-        contentView.addSubview(locationLabel)
-        contentView.addSubview(detailButton)
-        
-        NSLayoutConstraint.activate([
-            locationImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            locationImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            locationImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            locationImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            
-            locationLabel.leadingAnchor.constraint(equalTo: locationImageView.leadingAnchor, constant: 16),
-            locationLabel.bottomAnchor.constraint(equalTo: locationImageView.bottomAnchor, constant: -16),
-            
-            detailButton.centerYAnchor.constraint(equalTo: locationImageView.centerYAnchor),
-            detailButton.trailingAnchor.constraint(equalTo: locationImageView.trailingAnchor, constant: -16),
-            detailButton.heightAnchor.constraint(equalToConstant: 44),
-            detailButton.widthAnchor.constraint(equalToConstant: 44)
-        ])
     }
     
     func configureButton() {
@@ -78,12 +61,44 @@ class LocationListCollectionViewCell: UICollectionViewCell {
         locationLabel.translatesAutoresizingMaskIntoConstraints = false
         locationLabel.textColor = InvioColors.titleLabelColor
         locationLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
+        
+        distanceLabel.translatesAutoresizingMaskIntoConstraints = false
+        distanceLabel.textColor = InvioColors.secondaryLabelColor
+        distanceLabel.font = UIFont.systemFont(ofSize: 16, weight: .light)
+    }
+    
+    func configureUI() {
+        [locationImageView, locationLabel, detailButton, distanceLabel].forEach({ contentView.addSubview($0) })
+        
+        NSLayoutConstraint.activate([
+            locationImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            locationImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            locationImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            locationImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            
+            locationLabel.leadingAnchor.constraint(equalTo: locationImageView.leadingAnchor, constant: 16),
+            locationLabel.bottomAnchor.constraint(equalTo: locationImageView.bottomAnchor, constant: -16),
+            locationLabel.trailingAnchor.constraint(equalTo: detailButton.leadingAnchor, constant: -16),
+            
+            distanceLabel.bottomAnchor.constraint(equalTo: locationLabel.topAnchor, constant: -4),
+            distanceLabel.leadingAnchor.constraint(equalTo: locationLabel.leadingAnchor),
+            distanceLabel.trailingAnchor.constraint(equalTo: locationLabel.trailingAnchor),
+            
+            detailButton.centerYAnchor.constraint(equalTo: locationImageView.centerYAnchor),
+            detailButton.trailingAnchor.constraint(equalTo: locationImageView.trailingAnchor, constant: -16),
+            detailButton.heightAnchor.constraint(equalToConstant: 44),
+            detailButton.widthAnchor.constraint(equalToConstant: 44)
+        ])
     }
     
     func set(for location: LocationModel) {
         self.location = location
         locationLabel.text = location.name
         locationImageView.downloadImage(from: location.image)
+        
+        if let distance = location.distanceFromUser {
+            distanceLabel.text = UIHelper.calculateDistanceLabelText(distance: distance)
+        }
     }
     
     @objc

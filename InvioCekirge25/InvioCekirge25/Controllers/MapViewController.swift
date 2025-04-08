@@ -298,6 +298,8 @@ extension MapViewController {
         mapView.setRegion(region, animated: true)
     }
     
+    /// Handles the location authorization flow
+    /// - Parameter fromUserAction: Did user call the function from the location button.
     func handleLocationAuthorization(fromUserAction: Bool = false) {
         let authStatus = locationAuthService.getAuthorizationStatus()
         
@@ -324,6 +326,7 @@ extension MapViewController {
                 
                 self.userLocation = cachedLocation
                 self.showUserAnnotation(for: cachedLocation)
+                self.sortLocations()
                 
             } onUpdatedLocation: { [weak self] result in
                 
@@ -333,10 +336,10 @@ extension MapViewController {
                 case .success(let location):
                     self.userLocation = location
                     self.showUserAnnotation(for: location)
+                    self.sortLocations()
                 case .failure(let error):
                     self.presentAlert(errorMessage: error.localizedDescription)
                 }
-                
             }
         }
     }
@@ -411,18 +414,6 @@ extension MapViewController {
         present(alert, animated: true)
     }
     
-    private func centerCurrentCell() {
-        let centerPoint = CGPoint(x: collectionView.bounds.midX + collectionView.contentOffset.x,
-                                  y: collectionView.bounds.midY + collectionView.contentOffset.y)
-        
-        if let indexPath = collectionView.indexPathForItem(at: centerPoint),
-           let location = locations?[indexPath.item],
-           let annotation = mapView.annotations.first(where: { $0.title == location.name }) {
-            mapView.selectAnnotation(annotation, animated: true)
-            setRegionForAnnotation(for: annotation)
-        }
-    }
-    
     func openSettings() {
         if let settingsURL = URL(string: UIApplication.openSettingsURLString),
            UIApplication.shared.canOpenURL(settingsURL) {
@@ -468,6 +459,40 @@ extension MapViewController {
                     self.mapView.selectAnnotation(annotation, animated: true)
                     self.setRegionForAnnotation(for: annotation)
                 }
+            }
+        }
+    }
+    
+    /// Helper function that calculates the distance between user location and given location.
+    /// - Parameter location: Desired location for distance calculation
+    private func calculateDistance(to location: LocationModel) -> Double? {
+        guard let userLocation = userLocation else { return nil }
+        
+        let locationLat = CLLocationDegrees(location.coordinates.lat)
+        let locationLon = CLLocationDegrees(location.coordinates.lng)
+        let clLocation = CLLocation(latitude: locationLat, longitude: locationLon)
+        
+        return clLocation.distance(from: userLocation)
+    }
+    
+    /// Sorts locations based on the distance from user.
+    private func sortLocations() {
+        guard let _ = locations, locations!.count > 1 else { return }
+
+        for index in locations!.indices {
+            let loc = locations![index]
+            let distance = calculateDistance(to: loc)
+            locations![index].distanceFromUser = distance
+        }
+        
+        let sortedLocations = self.locations?.sorted()
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if sortedLocations != self.locations {
+                self.locations?.sort()
+                self.collectionView.reloadData()
+                self.showToast(message: "Lokasyonlar konumunuza göre düzenlendi.")
             }
         }
     }

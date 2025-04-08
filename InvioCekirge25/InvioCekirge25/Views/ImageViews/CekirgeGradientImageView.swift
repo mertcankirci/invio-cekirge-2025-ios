@@ -33,7 +33,7 @@ class CekirgeGradientImageView: CekirgeImageView {
     
     private func setupPlaceholder() {
         placeholderView.backgroundColor = .black
-        placeholderSymbol.image = UIImage(systemName: "photo")
+        placeholderSymbol.image = InvioImages.placeholder
         placeholderSymbol.tintColor = .gray
         placeholderSymbol.contentMode = .scaleAspectFit
         

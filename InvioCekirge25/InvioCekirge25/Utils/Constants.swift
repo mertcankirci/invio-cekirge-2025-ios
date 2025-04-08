@@ -12,6 +12,7 @@ enum InvioImages {
     static let map = UIImage(systemName: "map")
     static let detail = UIImage(systemName: "text.page.badge.magnifyingglass")
     static let compass = UIImage(systemName: "safari")
+    static let placeholder = UIImage(systemName: "photo")
 }
 
 enum InvioColors {

@@ -45,6 +45,11 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         return try await task.value
     }
     
+    
+    /// This function migrates requestLocation() and getCachedLocation() functions. If we have a cached location we simply adjust it on the map until our new location arrives. If the distance between our cached location and new (updated) location is smaller then 300 meters we simply return the cached location.
+    /// - Parameters:
+    ///   - onImmediateLocation: Returns cached location if we have it.
+    ///   - onUpdatedLocation: Return updated location if it's distance greater than 300 meters.
     func requestSmartLocation(onImmediateLocation: ((CLLocation) -> Void)?, onUpdatedLocation: ((Result<CLLocation, Error>) -> Void)?) {
         if let cachedLocation = self.getCachedLocation() {
             onImmediateLocation?(cachedLocation)

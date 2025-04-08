@@ -33,6 +33,8 @@ class APIService {
         }
     }
     
+    /// Validates response based on the response status code
+    /// - Parameter statusCode: Status code from response
     func validateResponse(statusCode: Int) throws {
         let status = NetworkError.networkStatus(for: statusCode)
         if case .success = status {
