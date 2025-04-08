@@ -19,7 +19,7 @@ enum UIHelper {
         let kilometer = distance / 1000
         let formattedDistance = isMeter ? distance : kilometer ///turn distance to kilometers if it's larger than 1000
         let type = isMeter ? " metre" : " kilometre"
-        labelText = String(format: "%.2f", formattedDistance) + type
+        labelText = String(format: "%.1f", formattedDistance) + type
         
         return labelText + " uzaklıkta"
     }

@@ -250,6 +250,19 @@ extension MapViewController: UICollectionViewDelegate, UICollectionViewDataSourc
         cell.set(for: location)
         return cell
     }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard let _ = collectionView.dequeueReusableCell(withReuseIdentifier: LocationListCollectionViewCell.reuseId, for: indexPath) as? LocationListCollectionViewCell,
+              let location = locations?[indexPath.row] else { return }
+        
+        if let annotation = mapView.annotations.first(where: { $0.title == location.name }) {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.mapView.selectAnnotation(annotation, animated: true)
+                self.setRegionForAnnotation(for: annotation)
+            }
+        }
+    }
 }
 
 ///Custom functions extension
@@ -260,9 +273,7 @@ extension MapViewController {
         var annotations: [MKPointAnnotation] = []
         
         for location in locations {
-            let annotation = createAnnotation(title: location.name,
-                                              lat: CGFloat(location.coordinates.lat),
-                                              lon: CGFloat(location.coordinates.lng))
+            let annotation = createAnnotation(title: location.name, lat: CGFloat(location.coordinates.lat), lon: CGFloat(location.coordinates.lng))
             annotations.append(annotation)
         }
         
@@ -273,26 +284,16 @@ extension MapViewController {
     func createAnnotation(title: String, lat: CGFloat, lon: CGFloat) -> MKPointAnnotation {
         let annotation = MKPointAnnotation()
         annotation.title = title
-        annotation.coordinate = CLLocationCoordinate2D(
-            latitude: lat,
-            longitude: lon
-        )
-        
+        annotation.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         return annotation
     }
     
     func setRegionForAnnotation(for annotation: MKAnnotation) {
         let lat = annotation.coordinate.latitude
         let lon = annotation.coordinate.longitude
-        let center = CLLocationCoordinate2D(
-            latitude: lat,
-            longitude: lon
-        )
+        let center = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         
-        let span = MKCoordinateSpan(
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01
-        )
+        let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
         
         let region = MKCoordinateRegion(center: center, span: span)
         mapView.setRegion(region, animated: true)
@@ -444,7 +445,7 @@ extension MapViewController {
 
             if let centerItem = sorted.first {
                 let indexPath = centerItem.indexPath
-                selectVisibleCell(for: indexPath)
+                self.selectVisibleCell(for: indexPath)
             }
         }
 
@@ -453,7 +454,8 @@ extension MapViewController {
     
     private func selectVisibleCell(for indexPath: IndexPath) {
         if !collectionViewWillScroll {
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
                 if let location = self.locations?[indexPath.item],
                    let annotation = self.mapView.annotations.first(where: { $0.title == location.name }) {
                     self.mapView.selectAnnotation(annotation, animated: true)
@@ -493,6 +495,11 @@ extension MapViewController {
                 self.locations?.sort()
                 self.collectionView.reloadData()
                 self.showToast(message: "Lokasyonlar konumunuza göre düzenlendi.")
+                
+                if let annotation = mapView.annotations.first(where: { $0.title == self.locations?.first?.name }) {
+                    self.mapView.selectAnnotation(annotation, animated: true)
+                    self.setRegionForAnnotation(for: annotation)
+                }
             }
         }
     }
