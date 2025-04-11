@@ -32,7 +32,7 @@ extension UIViewController {
         
         toastLabel.translatesAutoresizingMaskIntoConstraints = false
         toastLabel.backgroundColor = .systemFill
-        toastLabel.textColor = .secondaryLabel
+        toastLabel.textColor = .accent
         toastLabel.font = .systemFont(ofSize: 16, weight: .medium)
         toastLabel.textAlignment = .center;
         toastLabel.text = message

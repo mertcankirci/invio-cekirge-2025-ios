@@ -65,18 +65,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         guard let window = window else { return }
         
-        self.rootCoordinator!.start(animated: false)
-
-        UIView.transition(with: window,
-                          duration: 0.4,
-                          options: .transitionCrossDissolve,
-                          animations: {
-                                window.rootViewController = navController
-                          },
-                          completion: nil)
+        DispatchQueue.main.async { [weak self] in
+            self?.rootCoordinator!.start(animated: false)
+            
+            UIView.transition(with: window,
+                              duration: 0.4,
+                              options: .transitionCrossDissolve,
+                              animations: {
+                                    window.rootViewController = navController
+                              },
+                              completion: nil)
+        }
     }
-
-
-
 }
 

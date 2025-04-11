@@ -11,20 +11,18 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var locationHandler: ((Result<CLLocation, Error>) -> Void)?
     private var currentTask: Task<CLLocation, Error>?
-    private let cache = NSCache<AnyObject, AnyObject>()
-    private let period: Float = 30.0 //Time period for cache to return value.
     
     override init() {
         super.init()
         manager.delegate = self
     }
-
+    
     func requestLocation() async throws -> CLLocation {
         
         if let currentTask = currentTask {
             return try await currentTask.value
         }
-
+        
         let task = Task<CLLocation, Error> {
             try await withCheckedThrowingContinuation { continuation in
                 self.locationHandler = { [weak self] result in
@@ -40,40 +38,41 @@ class LocationService: NSObject, CLLocationManagerDelegate {
                 self.manager.requestLocation()
             }
         }
-
+        
         self.currentTask = task
         return try await task.value
     }
     
     
-    /// This function migrates requestLocation() and getCachedLocation() functions. If we have a cached location we simply adjust it on the map until our new location arrives. If the distance between our cached location and new (updated) location is smaller then 300 meters we simply return the cached location.
+    /// This function migrates requestLocation() and getCachedLocation() functions. If we have a cached location we simply adjust it on the map until our new location arrives. If the distance between our cached location and new (updated) location is less then 300 meters we simply return the cached location.
     /// - Parameters:
     ///   - onImmediateLocation: Returns cached location if we have it.
     ///   - onUpdatedLocation: Return updated location if it's distance greater than 300 meters.
-    func requestSmartLocation(onImmediateLocation: ((CLLocation) -> Void)?, onUpdatedLocation: ((Result<CLLocation, Error>) -> Void)?) {
-        if let cachedLocation = self.getCachedLocation() {
-            onImmediateLocation?(cachedLocation)
+    func requestSmartLocation(onImmediateLocation: ((CLLocation) async -> Void)?, onUpdatedLocation: ((Result<CLLocation, Error>) async -> Void)?
+    ) async {
+        let cached = await MainActor.run {
+            self.getCachedLocation()
         }
-        
-        Task {
-            do {
-                let updatedLocation = try await requestLocation()
-                
-                if let cachedLocation = self.getCachedLocation() {
-                    let distance = cachedLocation.distance(from: updatedLocation)
-                    
-                    if distance > 300 {
-                        onUpdatedLocation?(.success(updatedLocation))
-                    }
-                } else {
-                    onUpdatedLocation?(.success(updatedLocation))
-                }
-            } catch {
-                onUpdatedLocation?(.failure(error))
+
+        if let cached {
+            await onImmediateLocation?(cached)
+        }
+
+        do {
+            let updated = try await self.requestLocation()
+            
+            if let cached, cached.distance(from: updated) <= 300 {
+                return // cached yeterli
             }
+
+            await onUpdatedLocation?(.success(updated))
+
+        } catch {
+            await onUpdatedLocation?(.failure(error))
         }
     }
 
+    
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.last {
             locationHandler?(.success(location))
@@ -81,7 +80,7 @@ class LocationService: NSObject, CLLocationManagerDelegate {
             Log.success("Found user's location.")
         }
     }
-
+    
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         locationHandler?(.failure(error))
         locationHandler = nil

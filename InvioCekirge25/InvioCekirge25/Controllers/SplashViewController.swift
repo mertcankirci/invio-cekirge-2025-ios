@@ -45,21 +45,28 @@ class SplashViewController: UIViewController {
 
 extension SplashViewController {
     private func fetchDataAndSwitchScreens() {
-        Task {  [weak self] in
+        Task { [weak self] in
             guard let self = self else { return }
+
             do {
-                self.locationResults = try await service.fetchData()
-                self.routeToMainScreen()
+                let results = try await self.service.fetchData()
+                await MainActor.run {
+                    self.locationResults = results
+                    self.routeToMainScreen()
+                }
             } catch {
-                //MARK: - Kullaniciya hata mesaji
-                presentAlert(errorMessage: error.localizedDescription)
+                await MainActor.run {
+                    self.presentAlert(errorMessage: error.localizedDescription)
+                }
             }
         }
     }
     
     private func routeToMainScreen() {
         //Haptic feedback
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        DispatchQueue.main.async {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
         
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let delegate = scene.delegate as? SceneDelegate,

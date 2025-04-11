@@ -31,7 +31,7 @@ class MainViewController: UIViewController {
     func configureVC() {
         view.backgroundColor = InvioColors.groupedBackground
         navigationController?.navigationBar.prefersLargeTitles = true
-        title = "Invio Çekirge 2025"
+        title = "Önemli Konumlar"
         
         navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.accent]
         
@@ -70,35 +70,44 @@ class MainViewController: UIViewController {
 ///API functions
 extension MainViewController {
     private func fetchNextPage() {
-        page += 1
         guard let totalPage = totalPage, page <= totalPage, !fetching else { return }
+       
         fetching = true
+        page += 1
         
-        Task { [weak self] in
+        Task.detached { [weak self] in
             guard let self = self else { return }
+
             
             do {
                 let result = try await self.apiService.fetchData(for: page)
-                
-                await MainActor.run {
-                    
-                    if self.cities == nil {
+                if await self.cities == nil {
+                    await MainActor.run {
                         self.cities = []
                     }
-                    
+                }
+                let startIndex = await self.cities?.count ?? 0
+                
+                await MainActor.run {
+                    self.cities?.append(contentsOf: result.data)
+                }
+                
+                let endIndex = startIndex + result.data.count
+
+                await MainActor.run {
+                    let indexSet = IndexSet(integersIn: startIndex..<endIndex)
                     self.tableView.performBatchUpdates {
-                        let startIndex = self.cities?.count ?? 0
-                        self.cities?.append(contentsOf: result.data)
-                        let endIndex = startIndex + result.data.count
-                        let indexSet = IndexSet(integersIn: startIndex..<endIndex)
                         self.tableView.insertSections(indexSet, with: .none)
                     } completion: { _ in
                         self.fetching = false
                     }
+                    
                 }
             } catch {
-                self.fetching = false
-                presentAlert(errorMessage: error.localizedDescription)
+                await MainActor.run {
+                    self.fetching = false
+                    self.presentAlert(errorMessage: error.localizedDescription)
+                }
             }
         }
     }
@@ -180,12 +189,14 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
         guard let cities = cities else { return UITableViewCell() }
         let city = cities[indexPath.section]
         
+        //indexPath.row == 0 means it's section.
         if indexPath.row == 0 {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: CityTableViewCell.reuseId) as? CityTableViewCell else { return UITableViewCell() }
             
             cell.delegate = self
             cell.set(city: city)
             cell.adjustImagesMaskedCorners(city.isExpanded) ///To ensure box like UI.
+            
             return cell
         } else {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: LocationTableViewCell.reuseId) as? LocationTableViewCell else { return UITableViewCell() }

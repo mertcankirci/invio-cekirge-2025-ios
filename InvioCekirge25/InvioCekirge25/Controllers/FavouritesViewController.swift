@@ -12,14 +12,13 @@ protocol FavouritesViewControllerDelegate: AnyObject {
 }
 
 class FavouritesViewController: UIViewController {
-
     weak var coordinator: FavouritesCoordinator?
     weak var delegate: FavouritesViewControllerDelegate?
     private let persistenceService = PersistenceService.shared
     var favorites = [LocationModel]()
     
     private let tableView = UITableView()
-    private let emptyStateView = EmptyStateView(description: "Burası boş görünüyor. Favori konum eklemek ister misin?", imageName: "tray", frame: .zero)
+    private let emptyStateView = EmptyStateView(description: "Henüz hiçbir konumu favorilerine eklemedin!", imageName: "tray", frame: .zero)
     
     override func viewDidLoad() {
         super.viewDidLoad()

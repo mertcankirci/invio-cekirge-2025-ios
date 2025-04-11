@@ -16,7 +16,7 @@ class MapViewController: UIViewController {
     
     weak var coordinator: MapCoordinator?
     let mapView = MKMapView()
-    let alertController = UIAlertController(title: "Alert", message: "Konumunu haritada görmek ister misin?", preferredStyle: .alert)
+    let alertController = UIAlertController(title: "Alert", message: "Kendi konumunu haritada görmek ister misin?", preferredStyle: .alert)
     private let userLocationButton = UIButton()
     private var userLocation: CLLocation?
     private let getDirectionButton = UIButton()
@@ -46,15 +46,6 @@ class MapViewController: UIViewController {
         addPin()
         
         handleLocationAuthorization()
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        let authStatus = locationAuthService.getAuthorizationStatus()
-        
-        if authStatus == .authorizedAlways || authStatus == .authorizedWhenInUse {
-            handleUserLocation()
-        }
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -252,8 +243,7 @@ extension MapViewController: UICollectionViewDelegate, UICollectionViewDataSourc
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard let _ = collectionView.dequeueReusableCell(withReuseIdentifier: LocationListCollectionViewCell.reuseId, for: indexPath) as? LocationListCollectionViewCell,
-              let location = locations?[indexPath.row] else { return }
+        guard let location = locations?[indexPath.row] else { return }
         
         if let annotation = mapView.annotations.first(where: { $0.title == location.name }) {
             DispatchQueue.main.async { [weak self] in
@@ -293,7 +283,7 @@ extension MapViewController {
         let lon = annotation.coordinate.longitude
         let center = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         
-        let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        let span = MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
         
         let region = MKCoordinateRegion(center: center, span: span)
         mapView.setRegion(region, animated: true)
@@ -321,41 +311,49 @@ extension MapViewController {
     }
     
     func handleUserLocation() {
-        Task {
-            locationService.requestSmartLocation { [weak self] cachedLocation in
-                guard let self = self else { return }
-                
+        Task { [weak self] in
+            guard let self = self else { return }
+
+            await self.locationService.requestSmartLocation { cachedLocation in
                 self.userLocation = cachedLocation
-                self.showUserAnnotation(for: cachedLocation)
+                
+                await MainActor.run {
+                    self.showUserAnnotation(for: cachedLocation)
+                }
+                
                 self.sortLocations()
-                
-            } onUpdatedLocation: { [weak self] result in
-                
-                guard let self = self else { return }
-                
+            } onUpdatedLocation: { result in
                 switch result {
                 case .success(let location):
                     self.userLocation = location
-                    self.showUserAnnotation(for: location)
+                    
+                    await MainActor.run {
+                        self.showUserAnnotation(for: location)
+                    }
+                    
                     self.sortLocations()
                 case .failure(let error):
-                    self.presentAlert(errorMessage: error.localizedDescription)
+                    await MainActor.run {
+                        self.presentAlert(errorMessage: error.localizedDescription)
+                    }
                 }
             }
         }
     }
+
     
     private func showUserAnnotation(for location: CLLocation) {
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
         let annotationToAdd = createAnnotation(title: "Sen", lat: lat, lon: lon)
-        let annotationToRemove = mapView.annotations.first(where: { $0.title == "Sen" })
         
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            if let removed = annotationToRemove {
-                self.mapView.removeAnnotation(removed)
+            
+            if let toRemove = self.mapView.annotations.first(where: { $0.title == "Sen" }) {
+                self.mapView.removeAnnotation(toRemove)
             }
+            
             self.mapView.addAnnotation(annotationToAdd)
         }
     }
@@ -477,29 +475,50 @@ extension MapViewController {
         return clLocation.distance(from: userLocation)
     }
     
-    /// Sorts locations based on the distance from user.
-    private func sortLocations() {
-        guard let _ = locations, locations!.count > 1 else { return }
-
-        for index in locations!.indices {
-            let loc = locations![index]
-            let distance = calculateDistance(to: loc)
-            locations![index].distanceFromUser = distance
+    /// Sorts locations based on their distanceFromUser property with Comparable protocol -see LocationModel for more- on background thread.
+    /// - Parameters:
+    ///   - locations: locations array
+    ///   - userLocation: user location
+    /// - Returns: sorted locations
+    private func calculateSortedLocations(from locations: [LocationModel], userLocation: CLLocation) -> [LocationModel] {
+        var updated = locations
+        for i in updated.indices {
+            let lat = Double(updated[i].coordinates.lat)
+            let lon = Double(updated[i].coordinates.lng)
+            let distance = userLocation.distance(from: CLLocation(latitude: lat, longitude: lon))
+            updated[i].distanceFromUser = distance
         }
-        
-        let sortedLocations = self.locations?.sorted()
-        
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if sortedLocations != self.locations {
-                self.locations?.sort()
-                self.collectionView.reloadData()
-                self.showToast(message: "Lokasyonlar konumunuza göre düzenlendi.")
-                
-                if let annotation = mapView.annotations.first(where: { $0.title == self.locations?.first?.name }) {
-                    self.mapView.selectAnnotation(annotation, animated: true)
-                    self.setRegionForAnnotation(for: annotation)
-                }
+        return updated.sorted()
+    }
+    
+    
+    /// Applies sorted locations to the UI on main thread
+    /// - Parameter sorted: sorted locations array
+    @MainActor
+    private func applySortedLocations(_ sorted: [LocationModel]) {
+        if sorted != locations {
+            self.locations = sorted
+            self.collectionView.reloadData()
+            self.showToast(message: "Lokasyonlar konumunuza göre düzenlendi.")
+            
+            if let annotation = mapView.annotations.first(where: { $0.title == sorted.first?.name }) {
+                self.mapView.selectAnnotation(annotation, animated: true)
+                self.setRegionForAnnotation(for: annotation)
+            }
+        }
+    }
+    
+    /// Sorts locations, applies updates thread safe.
+    private func sortLocations() {
+        Task.detached { [weak self] in
+            guard let self = self,
+                  let locations = await self.locations,
+                  let userLocation = await self.userLocation else { return }
+            
+            let sorted = await self.calculateSortedLocations(from: locations, userLocation: userLocation)
+            
+            await MainActor.run {
+                self.applySortedLocations(sorted)
             }
         }
     }
