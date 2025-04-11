@@ -13,6 +13,9 @@ enum UIHelper {
         generator.notificationOccurred(.success)
     }
     
+    /// Calculates distance label's distance on mapVC's collection cells
+    /// - Parameter distance: distance between location and user
+    /// - Returns: the formatted distance
     static func calculateDistanceLabelText(distance: Double) -> String {
         var labelText = String()
         let isMeter = distance < 1000

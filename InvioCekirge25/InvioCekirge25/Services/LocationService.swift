@@ -17,6 +17,8 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         manager.delegate = self
     }
     
+    /// Gets location from user. Using currentTask to avoid cancaling task on spam.
+    /// - Returns: updated location.
     func requestLocation() async throws -> CLLocation {
         
         if let currentTask = currentTask {
@@ -42,7 +44,6 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         self.currentTask = task
         return try await task.value
     }
-    
     
     /// This function migrates requestLocation() and getCachedLocation() functions. If we have a cached location we simply adjust it on the map until our new location arrives. If the distance between our cached location and new (updated) location is less then 300 meters we simply return the cached location.
     /// - Parameters:
@@ -72,7 +73,6 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.last {
             locationHandler?(.success(location))

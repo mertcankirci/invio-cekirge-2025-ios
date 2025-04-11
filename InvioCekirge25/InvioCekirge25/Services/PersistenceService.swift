@@ -30,7 +30,8 @@ class PersistenceService {
             self.locationIDs = []
         }
     }
-
+    
+    /// Loads favorite locations from user defaults
     private func loadFavoriteLocations() throws {
         guard let data = defaults.data(forKey: favoriteLocationsKey) else {
             Log.error("Couldn't find the favorite location key.")
@@ -48,7 +49,9 @@ class PersistenceService {
             throw PersistenceError.decodingFailed
         }
     }
-
+    
+    /// Saves location to users' favorites on userdefaults
+    /// - Parameter location: location to favorite
     func saveFavLocation(for location: LocationModel) throws {
         guard !locationIDs.contains(location.id) else {
             Log.warning("Location already in favorites.")
@@ -64,7 +67,9 @@ class PersistenceService {
             throw error
         }
     }
-
+    
+    /// Deletes favorites location from user defaults
+    /// - Parameter location: location to delete
     func deleteFavLocation(for location: LocationModel) throws {
         guard locationIDs.contains(location.id) else {
             Log.warning("Location doesn't exist in favorites.")
@@ -81,11 +86,15 @@ class PersistenceService {
             throw error
         }
     }
-
+    
+    /// Returns if a location is favorite location. Does this by looking locationIDs array so the lookup complexity is O(1) instad of O(n).
+    /// - Parameter location: location to investigate
+    /// - Returns: if location is in favorites
     func isFavorite(location: LocationModel) -> Bool {
         return locationIDs.contains(location.id)
     }
-
+    
+    /// Encodes and saves favorite location.
     private func encodeAndSaveFavLocations() throws {
         let encoder = JSONEncoder()
 
