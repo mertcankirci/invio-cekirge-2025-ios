@@ -16,6 +16,8 @@ struct LocationModel: Codable, Comparable {
     
     //We'll use this for calculating the distance between the user and desired location.
     var distanceFromUser: Double?
+    //We'll use this for showing cty name in location detailVC.
+    var locationsCity: String?
     
     enum CodingKeys: String, CodingKey {
         case name, description, coordinates, image, id

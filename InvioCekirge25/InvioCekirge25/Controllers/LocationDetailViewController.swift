@@ -212,7 +212,8 @@ extension LocationDetailViewController {
     }
     
     private func saveFavoriteLocation() {
-        guard let location = location else { return }
+        guard var location = location else { return }
+        location.locationsCity = cityNameLabel.text
         do {
             try persistenceService.saveFavLocation(for: location)
         } catch {

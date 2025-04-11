@@ -112,7 +112,7 @@ extension FavouritesViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard let _ = tableView.dequeueReusableCell(withIdentifier: LocationTableViewCell.reuseId, for: indexPath) as? LocationTableViewCell else { return }
         let location = favorites[indexPath.row]
-        coordinator?.navigateToMapDetailView(with: location)
+        coordinator?.navigateToLocationDetailScreen(with: location)
     }
     
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {

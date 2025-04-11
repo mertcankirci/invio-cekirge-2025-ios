@@ -7,14 +7,38 @@
 
 import CoreLocation
 
-class LocationService: NSObject, CLLocationManagerDelegate {
+protocol LocationManagerProtocol: AnyObject {
+    var delegate: CLLocationManagerDelegate? {get set}
+    func requestLocation()
+    var location: CLLocation? {get}
+}
+
+class DefaultLocationManager: NSObject, LocationManagerProtocol {
     private let manager = CLLocationManager()
+    
+    var delegate: (any CLLocationManagerDelegate)? {
+        get { manager.delegate }
+        set { manager.delegate = newValue }
+    }
+    
+    func requestLocation() {
+        manager.requestLocation()
+    }
+    
+    var location: CLLocation? {
+        return manager.location
+    }
+}
+
+class LocationService: NSObject, CLLocationManagerDelegate {
+    private let manager: LocationManagerProtocol
     private var locationHandler: ((Result<CLLocation, Error>) -> Void)?
     private var currentTask: Task<CLLocation, Error>?
     
-    override init() {
+    init(manager: LocationManagerProtocol = DefaultLocationManager() ) {
+        self.manager = manager
         super.init()
-        manager.delegate = self
+        self.manager.delegate = self
     }
     
     /// Gets location from user. Using currentTask to avoid cancaling task on spam.
@@ -36,7 +60,6 @@ class LocationService: NSObject, CLLocationManagerDelegate {
                         continuation.resume(throwing: error)
                     }
                 }
-                self.manager.requestWhenInUseAuthorization()
                 self.manager.requestLocation()
             }
         }

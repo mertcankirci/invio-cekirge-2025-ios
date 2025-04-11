@@ -201,8 +201,9 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
         } else {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: LocationTableViewCell.reuseId) as? LocationTableViewCell else { return UITableViewCell() }
             let locationIndex = indexPath.row - 1
-            let location = city.locations[locationIndex]
+            var location = city.locations[locationIndex]
             let isFav = persistenceService.isFavorite(location: location)
+            location.locationsCity = city.city
             
             cell.delegate = self
             cell.set(location: location, isFavorite: isFav)

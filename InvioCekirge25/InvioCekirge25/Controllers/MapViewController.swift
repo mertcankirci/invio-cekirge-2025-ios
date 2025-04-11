@@ -248,8 +248,10 @@ extension MapViewController: UICollectionViewDelegate, UICollectionViewDataSourc
         if let annotation = mapView.annotations.first(where: { $0.title == location.name }) {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
+                let lat = annotation.coordinate.latitude
+                let lon = annotation.coordinate.longitude
                 self.mapView.selectAnnotation(annotation, animated: true)
-                self.setRegionForAnnotation(for: annotation)
+                self.setMapViewReigon(lat: lat, lon: lon)
             }
         }
     }
@@ -276,17 +278,6 @@ extension MapViewController {
         annotation.title = title
         annotation.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         return annotation
-    }
-    
-    func setRegionForAnnotation(for annotation: MKAnnotation) {
-        let lat = annotation.coordinate.latitude
-        let lon = annotation.coordinate.longitude
-        let center = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-        
-        let span = MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
-        
-        let region = MKCoordinateRegion(center: center, span: span)
-        mapView.setRegion(region, animated: true)
     }
     
     /// Handles the location authorization flow
@@ -341,7 +332,6 @@ extension MapViewController {
         }
     }
 
-    
     private func showUserAnnotation(for location: CLLocation) {
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
@@ -358,18 +348,24 @@ extension MapViewController {
         }
     }
     
+    private func setMapViewReigon(lat: CLLocationDegrees, lon: CLLocationDegrees) {
+        let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        let region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lon), span: span)
+        DispatchQueue.main.async { [weak self] in
+            self?.mapView.setRegion(region, animated: true)
+        }
+    }
+    
     @objc
     func didTapLocationButton() {
         if let userLocation = userLocation {
             let lat = userLocation.coordinate.latitude
             let lon = userLocation.coordinate.longitude
             let annotation = createAnnotation(title: "Sen", lat: lat, lon: lon)
-            let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            let region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lon), span: span)
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.mapView.addAnnotation(annotation)
-                self.mapView.setRegion(region, animated: true)
+                setMapViewReigon(lat: lat, lon: lon)
             }
         } else {
             handleLocationAuthorization(fromUserAction: true)
@@ -381,6 +377,12 @@ extension MapViewController {
         guard let location = self.locations?.first else { return }
         let latitude = location.coordinates.lat
         let longitude = location.coordinates.lng
+        
+        DispatchQueue.main.async { [weak self] in
+            let lat = CLLocationDegrees(latitude)
+            let lon = CLLocationDegrees(longitude)
+            self?.setMapViewReigon(lat: lat, lon: lon)
+        }
         
         //app urls
         let appleURL = "http://maps.apple.com/?daddr=\(latitude),\(longitude)"
@@ -456,8 +458,10 @@ extension MapViewController {
                 guard let self = self else { return }
                 if let location = self.locations?[indexPath.item],
                    let annotation = self.mapView.annotations.first(where: { $0.title == location.name }) {
+                    let lat = annotation.coordinate.latitude
+                    let lon = annotation.coordinate.longitude
                     self.mapView.selectAnnotation(annotation, animated: true)
-                    self.setRegionForAnnotation(for: annotation)
+                    self.setMapViewReigon(lat: lat, lon: lon)
                 }
             }
         }
@@ -496,15 +500,19 @@ extension MapViewController {
     /// - Parameter sorted: sorted locations array
     @MainActor
     private func applySortedLocations(_ sorted: [LocationModel]) {
-        if sorted != locations {
-            self.locations = sorted
-            self.collectionView.reloadData()
-            self.showToast(message: "Lokasyonlar konumunuza göre düzenlendi.")
-            
-            if let annotation = mapView.annotations.first(where: { $0.title == sorted.first?.name }) {
-                self.mapView.selectAnnotation(annotation, animated: true)
-                self.setRegionForAnnotation(for: annotation)
+        if sorted == locations { return }
+        
+        collectionView.performBatchUpdates {
+            for (index, newLocation) in sorted.enumerated() {
+                if let oldIndex = self.locations?.firstIndex(where: { newLocation.id == $0.id }), oldIndex != index {
+                    let from = IndexPath(item: oldIndex, section: 0)
+                    let to = IndexPath(item: index, section: 0)
+                    
+                    collectionView.moveItem(at: from, to: to)
+                }
             }
+        } completion: { [weak self] _ in
+            self?.locations = sorted
         }
     }
     
