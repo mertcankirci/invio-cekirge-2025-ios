@@ -34,7 +34,7 @@ Invio iOS case study.
 </div>
 
 ## General info
-This is an iOS Project that developed using `UIKit` framework for Invio USG iOS Challange. It is a 6 pages application which are: 
+This is an iOS Project that developed using `UIKit` framework for Invio USG iOS Challange. It is a 6 paged application which are: 
 * Splash screen
 * Main screen
 * Location detail screen
