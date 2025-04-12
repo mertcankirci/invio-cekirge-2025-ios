@@ -36,10 +36,7 @@ class FavouritesViewController: UIViewController {
         configureComponentVisibilty()
         
         configureUI()
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
+        
         loadFavorites()
     }
     
@@ -60,6 +57,7 @@ class FavouritesViewController: UIViewController {
         }
 
         self.emptyStateView.isUserInteractionEnabled = !hasFavorites
+        self.emptyStateView.isHidden = hasFavorites
         self.tableView.isUserInteractionEnabled = hasFavorites
     }
     
@@ -81,6 +79,7 @@ class FavouritesViewController: UIViewController {
     func configureViewController() {
         view.backgroundColor = InvioColors.groupedBackground
         navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.largeTitleDisplayMode = .automatic
         title = "Favorilerim"
     }
     
@@ -88,7 +87,7 @@ class FavouritesViewController: UIViewController {
         [tableView, emptyStateView].forEach({ view.addSubview($0) })
         
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),

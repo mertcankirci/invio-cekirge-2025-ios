@@ -11,6 +11,7 @@ class EmptyStateView: UIView {
     
     let emptyStateImageView = UIImageView()
     let emptyStateLabel = UILabel()
+    let imageSize: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 260 : 200
     
     init(description: String, imageName: String, frame: CGRect) {
         super.init(frame: frame)
@@ -42,29 +43,33 @@ class EmptyStateView: UIView {
         emptyStateLabel.textColor = .secondaryLabel
         emptyStateLabel.numberOfLines = 0
         emptyStateLabel.textAlignment = .center
+        emptyStateLabel.preferredMaxLayoutWidth = 400
     }
     
     func configureImageView() {
         emptyStateImageView.translatesAutoresizingMaskIntoConstraints = false
         emptyStateImageView.tintColor = .accent
-        emptyStateImageView.contentMode = .scaleAspectFill
+        emptyStateImageView.contentMode = .scaleAspectFit
     }
     
     func configureUI() {
         [emptyStateImageView, emptyStateLabel].forEach({ addSubview($0) })
         
+        let imageMultiplier: CGFloat = 0.7
+        
         NSLayoutConstraint.activate([
-            emptyStateImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            emptyStateImageView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            emptyStateImageView.topAnchor.constraint(equalTo: topAnchor, constant: 16),
-            emptyStateImageView.heightAnchor.constraint(equalToConstant: 200),
+            emptyStateImageView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            emptyStateImageView.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -40),
+            emptyStateImageView.widthAnchor.constraint(equalTo: widthAnchor, multiplier: imageMultiplier),
+            emptyStateImageView.heightAnchor.constraint(equalTo: emptyStateImageView.widthAnchor),
             
-            emptyStateLabel.leadingAnchor.constraint(equalTo: emptyStateImageView.leadingAnchor),
-            emptyStateLabel.trailingAnchor.constraint(equalTo: emptyStateImageView.trailingAnchor),
-            emptyStateLabel.topAnchor.constraint(equalTo: emptyStateImageView.bottomAnchor, constant: 64),
+            emptyStateLabel.topAnchor.constraint(equalTo: emptyStateImageView.bottomAnchor, constant: 24),
+            emptyStateLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 32),
+            emptyStateLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -32),
+            emptyStateLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
         ])
     }
-    
+
     func configureView() {
         translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = .clear
