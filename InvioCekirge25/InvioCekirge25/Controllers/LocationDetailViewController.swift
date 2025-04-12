@@ -15,8 +15,7 @@ class LocationDetailViewController: UIViewController {
 
     weak var coordinator: LocationDetailCoordinator?
     weak var delegate: LocationDetailVCDelegate?
-    
-    private let persistenceService = PersistenceService.shared
+    private let persistenceService: PersistenceServiceProtocol
     private var isFavorite: Bool = false
     
     var location: LocationModel? {
@@ -36,6 +35,15 @@ class LocationDetailViewController: UIViewController {
     private let viewOnMapView = ViewOnMapView(frame: .zero, imageName: "map", actionDescription: "Haritada görüntüleyebilirsiniz.", callerDescription: "Bu lokasyonu")
 
     let cityNameLabel = UILabel() ///We're setting this from coordinator.
+    
+    init(persistenceService: PersistenceServiceProtocol) {
+        self.persistenceService = persistenceService
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()

@@ -14,11 +14,20 @@ protocol FavouritesViewControllerDelegate: AnyObject {
 class FavouritesViewController: UIViewController {
     weak var coordinator: FavouritesCoordinator?
     weak var delegate: FavouritesViewControllerDelegate?
-    private let persistenceService = PersistenceService.shared
+    private let persistenceService: PersistenceServiceProtocol
     var favorites = [LocationModel]()
     
     private let tableView = UITableView()
     private let emptyStateView = EmptyStateView(description: "Henüz hiçbir konumu favorilerine eklemedin!", imageName: "tray", frame: .zero)
+    
+    init(persistenceService: PersistenceServiceProtocol) {
+        self.persistenceService = persistenceService
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -104,7 +113,7 @@ extension FavouritesViewController: UITableViewDelegate, UITableViewDataSource {
         let isFav = persistenceService.isFavorite(location: location)
         
         cell.delegate = self
-        cell.set(location: location, isFavorite: isFav)
+        cell.set(location: location, isFavorite: isFav, persistenceService: persistenceService)
         
         return cell
     }
@@ -164,7 +173,7 @@ extension FavouritesViewController {
 
             let location = favorites[indexPath.row]
             let isFav = persistenceService.isFavorite(location: location)
-            cell.set(location: location, isFavorite: isFav)
+            cell.set(location: location, isFavorite: isFav, persistenceService: persistenceService)
         }
     }
 }

@@ -19,6 +19,9 @@ class LocationTableViewCell: UITableViewCell {
     private let mainContainer = UIView()
     private let seperator = UIView()
     private let favButton = UIButton()
+    
+    var persistenceService: PersistenceServiceProtocol?
+    
     private var isFavorite: Bool = false
     
     weak var delegate: LocationTableViewCellDelegate?
@@ -105,7 +108,8 @@ class LocationTableViewCell: UITableViewCell {
         ])
     }
     
-    func set(location: LocationModel, isFavorite: Bool) {
+    func set(location: LocationModel, isFavorite: Bool, persistenceService: PersistenceServiceProtocol) {
+        self.persistenceService = persistenceService
         self.location = location
         self.isFavorite = isFavorite
         locationLabel.text = location.name
@@ -151,11 +155,12 @@ extension LocationTableViewCell {
         
         do {
             if isFavorite {
-                try PersistenceService.shared.deleteFavLocation(for: location)
+                
+                try persistenceService?.deleteFavLocation(for: location)
                 isFavorite = false
                 delegate?.removedFavorite(location)
             } else {
-                try PersistenceService.shared.saveFavLocation(for: location)
+                try persistenceService?.saveFavLocation(for: location)
                 isFavorite = true
             }
         } catch {

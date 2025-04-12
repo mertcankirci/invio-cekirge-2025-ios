@@ -13,15 +13,18 @@ final class RootCoordinator: Coordinator, ParentCoordinator {
     var mainViewController: MainViewController?
     private var cities: [CityModel]?
     private var totalPage: Int?
+    private let storage = UserDefaultsStorage()
+    private let persistenceService: PersistenceServiceProtocol
     
     init(navigationController: UINavigationController, cities: [CityModel]?, totalPage: Int?) {
         self.navigationController = navigationController
         self.cities = cities
         self.totalPage = totalPage
+        self.persistenceService = PersistenceService(storage: storage)
     }
     
     func start(animated: Bool) {
-        mainViewController = MainViewController()
+        mainViewController = MainViewController(persistenceService: persistenceService)
         mainViewController!.coordinator = self
         mainViewController!.cities = cities
         mainViewController!.totalPage = totalPage
@@ -31,7 +34,7 @@ final class RootCoordinator: Coordinator, ParentCoordinator {
 
 extension RootCoordinator {
     func navigateToFavouritesScreen(animated: Bool) {
-        let favouritesCoordinator = FavouritesCoordinator(navigationController: navigationController)
+        let favouritesCoordinator = FavouritesCoordinator(navigationController: navigationController, persistenceService: persistenceService)
         favouritesCoordinator.parent = self
         addChild(favouritesCoordinator)
         favouritesCoordinator.start(animated: animated)
@@ -49,7 +52,7 @@ extension RootCoordinator {
     }
     
     func navigateToLocationDetailScreen(animated: Bool, location: LocationModel, cityName: String) {
-        let locationDetailCoordinator = LocationDetailCoordinator(navigationController: navigationController, location: location, cityName: cityName)
+        let locationDetailCoordinator = LocationDetailCoordinator(navigationController: navigationController, location: location, cityName: cityName, persistenceService: persistenceService)
         locationDetailCoordinator.parent = self
         addChild(locationDetailCoordinator)
         locationDetailCoordinator.start(animated: animated)

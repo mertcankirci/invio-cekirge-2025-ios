@@ -12,13 +12,15 @@ class FavouritesCoordinator: ChildCoordinator {
     var viewControllerRef: UIViewController?
     var parent: RootCoordinator?
     var navigationController: UINavigationController
+    var persistenceService: PersistenceServiceProtocol
     
-    init(navigationController: UINavigationController) {
+    init(navigationController: UINavigationController, persistenceService: PersistenceServiceProtocol) {
         self.navigationController = navigationController
+        self.persistenceService = persistenceService
     }
     
     func start(animated: Bool) {
-        let favouritesVC = FavouritesViewController()
+        let favouritesVC = FavouritesViewController(persistenceService: persistenceService)
         viewControllerRef = favouritesVC
         favouritesVC.coordinator = self
         navigationController.pushViewController(favouritesVC, animated: animated)

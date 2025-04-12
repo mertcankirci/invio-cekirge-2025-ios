@@ -7,10 +7,32 @@
 
 import Foundation
 
-class PersistenceService {
-    static let shared = PersistenceService()
+protocol KeyValueStorage {
+    func data(forKey: String) -> Data?
+    func set(_ data: Data, forKey: String)
+}
+
+class UserDefaultsStorage: KeyValueStorage {
+    private let defaults = UserDefaults.standard
+    func data(forKey: String) -> Data? {
+        return defaults.data(forKey: forKey)
+    }
     
-    private let defaults: UserDefaults
+    func set(_ data: Data, forKey: String) {
+        defaults.set(data, forKey: forKey)
+    }
+}
+
+protocol PersistenceServiceProtocol {
+    func saveFavLocation(for location: LocationModel) throws
+    func deleteFavLocation(for location: LocationModel) throws
+    func isFavorite(location: LocationModel) -> Bool
+    var favoriteLocations: [LocationModel] { get }
+}
+
+
+class PersistenceService: PersistenceServiceProtocol {
+    private let storage: KeyValueStorage
     private let favoriteLocationsKey = "invio-fav-loc-key"
     
     private var locations: [LocationModel] = []
@@ -20,8 +42,8 @@ class PersistenceService {
         return locations
     }
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
+    init(storage: KeyValueStorage) {
+        self.storage = storage
         do {
             try loadFavoriteLocations()
         } catch {
@@ -33,7 +55,7 @@ class PersistenceService {
     
     /// Loads favorite locations from user defaults
     private func loadFavoriteLocations() throws {
-        guard let data = defaults.data(forKey: favoriteLocationsKey) else {
+        guard let data = storage.data(forKey: favoriteLocationsKey) else {
             Log.error("Couldn't find the favorite location key.")
             throw PersistenceError.noDataFound
         }
@@ -100,7 +122,7 @@ class PersistenceService {
 
         do {
             let data = try encoder.encode(locations)
-            defaults.set(data, forKey: favoriteLocationsKey)
+            storage.set(data, forKey: favoriteLocationsKey)
             Log.success("Location saved to favorites.")
         } catch {
             Log.error("Failed to encode favorite locations")

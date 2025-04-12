@@ -378,6 +378,7 @@ extension MapViewController {
         let latitude = location.coordinates.lat
         let longitude = location.coordinates.lng
         
+        // sets mapView region after clicking the button.
         DispatchQueue.main.async { [weak self] in
             let lat = CLLocationDegrees(latitude)
             let lon = CLLocationDegrees(longitude)
@@ -496,7 +497,7 @@ extension MapViewController {
     }
     
     
-    /// Applies sorted locations to the UI on main thread
+    /// Applies sorted locations to the UI on main thread.
     /// - Parameter sorted: sorted locations array
     @MainActor
     private func applySortedLocations(_ sorted: [LocationModel]) {
@@ -516,7 +517,7 @@ extension MapViewController {
         }
     }
     
-    /// Sorts locations, applies updates thread safe.
+    /// Sorts locations, applies updates in a thread safe way.
     private func sortLocations() {
         Task.detached { [weak self] in
             guard let self = self,

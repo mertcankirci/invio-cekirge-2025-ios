@@ -9,8 +9,8 @@ import CoreLocation
 
 protocol LocationManagerProtocol: AnyObject {
     var delegate: CLLocationManagerDelegate? {get set}
-    func requestLocation()
     var location: CLLocation? {get}
+    func requestLocation()
 }
 
 class DefaultLocationManager: NSObject, LocationManagerProtocol {

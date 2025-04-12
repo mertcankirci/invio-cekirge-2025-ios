@@ -17,8 +17,17 @@ class MainViewController: UIViewController {
     private var page: Int = 1
     private var fetching: Bool = false ///Variable to indicate wether if the function is fetching or not to ensure pagination correctness.
     private let apiService = APIService()
-    private let persistenceService = PersistenceService.shared
+    private let persistenceService: PersistenceServiceProtocol
     let tableView = UITableView()
+    
+    init(persistenceService: PersistenceServiceProtocol) {
+        self.persistenceService = persistenceService
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -101,7 +110,6 @@ extension MainViewController {
                     } completion: { _ in
                         self.fetching = false
                     }
-                    
                 }
             } catch {
                 await MainActor.run {
@@ -119,7 +127,7 @@ extension MainViewController {
                 let indexPath = IndexPath(row: locationIndex + 1, section: sectionIndex)
 
                 if let cell = tableView.cellForRow(at: indexPath) as? LocationTableViewCell {
-                    cell.set(location: location, isFavorite: isFavorite)
+                    cell.set(location: location, isFavorite: isFavorite, persistenceService: persistenceService)
                 }
                 break
             }
@@ -206,7 +214,7 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
             location.locationsCity = city.city
             
             cell.delegate = self
-            cell.set(location: location, isFavorite: isFav)
+            cell.set(location: location, isFavorite: isFav, persistenceService: persistenceService)
             
             return cell
         }

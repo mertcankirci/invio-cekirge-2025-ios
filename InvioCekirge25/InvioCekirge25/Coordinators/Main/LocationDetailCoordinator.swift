@@ -14,15 +14,17 @@ class LocationDetailCoordinator: ChildCoordinator {
     var navigationController: UINavigationController
     var location: LocationModel
     var cityName: String
+    private let persistenceService: PersistenceServiceProtocol
     
-    init(navigationController: UINavigationController, location: LocationModel, cityName: String) {
+    init(navigationController: UINavigationController, location: LocationModel, cityName: String, persistenceService: PersistenceServiceProtocol) {
         self.navigationController = navigationController
         self.location = location
         self.cityName = cityName
+        self.persistenceService = persistenceService
     }
     
     func start(animated: Bool) {
-        let locationDetailVC = LocationDetailViewController()
+        let locationDetailVC = LocationDetailViewController(persistenceService: persistenceService)
         viewControllerRef = locationDetailVC
         locationDetailVC.coordinator = self
         locationDetailVC.location = location
