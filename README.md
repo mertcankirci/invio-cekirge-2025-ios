@@ -42,7 +42,7 @@ This is an iOS Project that developed using `UIKit` framework for Invio USG iOS 
 * Location map screen
 * Favorites screen 
 
-All map-related features were built with `MKMapView`, while list-based views were implemented using `UITableView`. The `Kingfisher` library was used across the project to handle image downloading, caching, and scaling efficiently. The app applies `SOLID` principles throughout its architecture, and favorite locations are persistently managed using `UserDefaults`. Additionally, performance tests were conducted using Xcode Instruments, and no `hangs`, `hitches`, or `memory leaks` were detected in the application.
+All map-related features were built with `MKMapView`, while list-based views were implemented using `UITableView`. The `Kingfisher` library was used across the project to handle image downloading, caching, and scaling efficiently. The app applies `SOLID` principles throughout its architecture, and favorite locations are persistently managed using `UserDefaults`. Additionally, performance tests were conducted using Xcode Instruments, and no `hangs`, `hitches`, or `memory leaks` were detected in the application. Furthermore, unit tests have been written for core services, including `LocationService`, `PersistenceService`, and `APIService`, to ensure reliability and correctness across the app’s key functionalities.
 
 ## Design Pattern
 The project follows the MVC (Model-View-Controller) design pattern, which provides a clear separation of concerns and makes the codebase easier to understand and maintain. Each screen is structured around a dedicated view controller that interacts with the model layer and updates the UI accordingly. This approach ensures a straightforward and scalable architecture suitable for small to mid-sized iOS applications.
@@ -62,6 +62,9 @@ Contains shared model objects such as CityModel, LocationModel, and CoordinateMo
 Provides useful extensions and utility methods for UIKit and Foundation, improving code readability and reducing boilerplate.
 * Persistence <br />
 Implements a lightweight persistence layer using UserDefaults to manage favorite locations, with support for saving, deleting, and checking stored items.
+
+## Documentation 
+All comments and code structure are written in a way that is fully compatible with Apple’s `DocC` documentation format. If generated, the documentation will cover the entire project clearly and comprehensively. 
 
 ## Technologies
 The app is developed using:
