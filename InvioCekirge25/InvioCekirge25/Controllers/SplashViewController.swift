@@ -64,14 +64,18 @@ extension SplashViewController {
     
     private func routeToMainScreen() {
         //Haptic feedback
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            
+            UIView.animate(withDuration: 0.4) {
+                self?.logoImageView.alpha = 0
+            } completion: { _ in
+                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                      let delegate = scene.delegate as? SceneDelegate,
+                      let results = self?.locationResults else { return }
+                
+                delegate.switchToMainScreen(with: results)
+            }
         }
-        
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let delegate = scene.delegate as? SceneDelegate,
-              let results = locationResults else { return }
-        
-        delegate.switchToMainScreen(with: results)
     }
 }
