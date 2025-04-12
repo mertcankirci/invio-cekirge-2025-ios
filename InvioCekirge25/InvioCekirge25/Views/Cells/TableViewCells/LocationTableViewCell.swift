@@ -127,6 +127,7 @@ class LocationTableViewCell: UITableViewCell {
         seperator.isHidden = true
     }
     
+    /// If its the first cell (at the very top) adjusts corner radius
     func ifFirstCellPerform() {
         UIView.animate(withDuration: 0.25) {
             self.mainContainer.layer.cornerRadius = 12
@@ -134,6 +135,7 @@ class LocationTableViewCell: UITableViewCell {
         }
     }
     
+    /// If its the only cell adjusts corner radius
     func ifOnlyCellPerform() {
         UIView.animate(withDuration: 0.25) {
             self.mainContainer.layer.cornerRadius = 12

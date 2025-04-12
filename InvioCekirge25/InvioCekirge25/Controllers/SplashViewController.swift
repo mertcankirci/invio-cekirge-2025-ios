@@ -44,6 +44,7 @@ class SplashViewController: UIViewController {
 }
 
 extension SplashViewController {
+    /// Fetchs first page of cities. After fetching navigates to main screen.
     private func fetchDataAndSwitchScreens() {
         Task { [weak self] in
             guard let self = self else { return }
@@ -62,6 +63,7 @@ extension SplashViewController {
         }
     }
     
+    /// Navigates to main screen
     private func routeToMainScreen() {
         //Haptic feedback
         DispatchQueue.main.async { [weak self] in

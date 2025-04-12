@@ -78,6 +78,7 @@ class MainViewController: UIViewController {
 }
 ///API functions
 extension MainViewController {
+    /// Fetches next page of cities.
     private func fetchNextPage() {
         guard let totalPage = totalPage, page <= totalPage, !fetching else { return }
        
@@ -120,6 +121,10 @@ extension MainViewController {
         }
     }
     
+    /// Updates cell after got favorited or removed from favorites.
+    /// - Parameters:
+    ///   - location: location that got favorited
+    ///   - isFavorite: if location is in favorites
     private func updateFavoriteStatus(location: LocationModel, isFavorite: Bool) {
         guard let cities = cities else { return }
         for (sectionIndex, city) in cities.enumerated() {

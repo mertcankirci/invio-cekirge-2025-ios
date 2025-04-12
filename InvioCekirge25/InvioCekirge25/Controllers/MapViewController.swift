@@ -259,6 +259,7 @@ extension MapViewController: UICollectionViewDelegate, UICollectionViewDataSourc
 
 ///Custom functions extension
 extension MapViewController {
+    /// Adds annotation pin to the MapView
     private func addPin() {
         guard let locations = locations, locations.count > 0 else { Log.warning("No locations found on Map VC"); return }
         
@@ -301,6 +302,7 @@ extension MapViewController {
         }
     }
     
+    /// Finds user location
     func handleUserLocation() {
         Task { [weak self] in
             guard let self = self else { return }
@@ -309,7 +311,7 @@ extension MapViewController {
                 self.userLocation = cachedLocation
                 
                 await MainActor.run {
-                    self.showUserAnnotation(for: cachedLocation)
+                    self.addUserAnnotation(for: cachedLocation)
                 }
                 
                 self.sortLocations()
@@ -319,7 +321,7 @@ extension MapViewController {
                     self.userLocation = location
                     
                     await MainActor.run {
-                        self.showUserAnnotation(for: location)
+                        self.addUserAnnotation(for: location)
                     }
                     
                     self.sortLocations()
@@ -332,7 +334,7 @@ extension MapViewController {
         }
     }
 
-    private func showUserAnnotation(for location: CLLocation) {
+    private func addUserAnnotation(for location: CLLocation) {
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
         let annotationToAdd = createAnnotation(title: "Sen", lat: lat, lon: lon)
@@ -348,6 +350,10 @@ extension MapViewController {
         }
     }
     
+    /// Sets region on MapView based on a coordinate.
+    /// - Parameters:
+    ///   - lat: latitude of coordinate
+    ///   - lon: longitude of coordinate
     private func setMapViewReigon(lat: CLLocationDegrees, lon: CLLocationDegrees) {
         let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
         let region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lon), span: span)
@@ -423,7 +429,8 @@ extension MapViewController {
         }
     }
     
-    //Collection view layout (select the location based on the scroll on collection view)
+    /// Table view layout that selects annotation on MapView based on the visible cell at the center of the screen
+    /// - Returns: Layout of TableView
     private func snapToCenterLocationListLayout() -> UICollectionViewCompositionalLayout {
         let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1.0))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
@@ -453,6 +460,8 @@ extension MapViewController {
         return UICollectionViewCompositionalLayout(section: section)
     }
     
+    /// Selects annotation based on the visible cell.
+    /// - Parameter indexPath: indexPath of centered item.
     private func selectVisibleCell(for indexPath: IndexPath) {
         if !collectionViewWillScroll {
             DispatchQueue.main.async { [weak self] in

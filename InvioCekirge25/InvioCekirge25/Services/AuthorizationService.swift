@@ -34,6 +34,8 @@ class LocationAuthorizationService: LocationAuthorizable {
 
 ///Main class to request authorization
 class AuthorizationService {
+    /// Requests authorization for all classes that conforms Authorizable
+    /// - Parameter type: Object that conforms Authorizable
     func requestAuthorization(for type: Authorizable) {
         type.requestAuthorization()
     }

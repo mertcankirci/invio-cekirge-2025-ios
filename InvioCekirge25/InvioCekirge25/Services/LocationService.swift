@@ -110,6 +110,8 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         Log.error("Failed to find user's location.")
     }
     
+    /// Gets user's cached location
+    /// - Returns: User's location
     func getCachedLocation() -> CLLocation? {
         return manager.location
     }

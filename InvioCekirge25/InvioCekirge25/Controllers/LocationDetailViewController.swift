@@ -210,6 +210,7 @@ extension LocationDetailViewController {
         return persistenceService.isFavorite(location: location)
     }
     
+    /// Handles favorite location deletion and addition on the same time
     private func handleFavoritePersistence() {
         if isFavorite {
             deleteFavoriteLocation()
@@ -219,6 +220,7 @@ extension LocationDetailViewController {
         UIHelper.successHapticFeedback()
     }
     
+    /// Saves favorite location to UserDefaults
     private func saveFavoriteLocation() {
         guard var location = location else { return }
         location.locationsCity = cityNameLabel.text
@@ -229,6 +231,7 @@ extension LocationDetailViewController {
         }
     }
     
+    /// Deletes favorite location from UserDefaults
     private func deleteFavoriteLocation() {
         guard let location = location else { return }
         do {

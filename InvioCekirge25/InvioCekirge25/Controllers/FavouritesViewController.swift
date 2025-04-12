@@ -146,6 +146,7 @@ extension FavouritesViewController: UITableViewDelegate, UITableViewDataSource {
 
 //custom functions
 extension FavouritesViewController {
+    /// Loads favorite locations from UserDefaults
     private func loadFavorites() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -155,6 +156,7 @@ extension FavouritesViewController {
         }
     }
     
+    /// Updates cells radiuses based on the
     private func updateFirstLastCellStates() {
         let visibleIndexPaths = tableView.indexPathsForVisibleRows ?? []
         for indexPath in visibleIndexPaths {
