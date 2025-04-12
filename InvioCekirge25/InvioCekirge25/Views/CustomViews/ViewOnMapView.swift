@@ -72,7 +72,7 @@ class ViewOnMapView: UIView {
     
     func configureButtons() {
         viewOnMapButton.translatesAutoresizingMaskIntoConstraints = false
-        viewOnMapButton.setTitle("Keşfet", for: .normal)
+        viewOnMapButton.setTitle("Göster", for: .normal)
         viewOnMapButton.layer.cornerRadius = 15
         viewOnMapButton.layer.masksToBounds = true
         viewOnMapButton.backgroundColor = .white.withAlphaComponent(0.3)
